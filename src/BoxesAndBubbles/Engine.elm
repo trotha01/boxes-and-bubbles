@@ -62,11 +62,9 @@ collisionBubbleBubble b0b1 radius0 radius1 =
                 normal =
                     div2 b0b1 d
                 (normal2, penetration2) =
-                    if penetration > smallR*2
-                    then ((1, 0), 0) -- inside, do nothing
-                    else if penetration > smallR
+                    if penetration > smallR
                     then ((neg normal), penetration) --  inner bump, negate the normal
-                    else ((1, 0), 0) -- (normal, penetration), outside, do nothing 
+                    else (normal, penetration) 
             in
                 CollisionResult (normal2) (penetration2)
 

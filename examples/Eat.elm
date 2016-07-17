@@ -194,11 +194,6 @@ subs =
         , AnimationFrame.diffs Tick
         ]
 
-swallow : Body meta -> Body meta ->  ( Body meta, Body meta )
-swallow user food =
-    (user, food)
-    -- Engine.resolveCollision collisionResult user food
-
 {-| collide assumes a0 is the user, b0 is possible food
 -}
 collide : Body meta -> Body meta -> ( Body meta, Body meta )
@@ -209,8 +204,9 @@ collide a0 b0 =
 
         (a1, b1) = if collisionResult.penetration > 0
             then case b0.shape of
-                -- (Bubble _) -> swallow a0 b0
-                (Bubble _) -> (Engine.resolveCollision collisionResult a0 b0)
+                (Bubble r) -> if collisionResult.penetration > r*2 || collisionResult.penetration < r
+                    then (a0, b0) -- swallow
+                    else (Engine.resolveCollision collisionResult a0 b0)
                 (Box _) -> Engine.resolveCollision collisionResult a0 b0
             else
                 Engine.resolveCollision collisionResult a0 b0
