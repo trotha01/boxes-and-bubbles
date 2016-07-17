@@ -40,6 +40,11 @@ collisionBubbleBubble b0b1 radius0 radius1 =
         distanceSq =
             lenSq b0b1
 
+        (smallR, largeR) =
+            if radius0 < radius1
+            then (radius0, radius1)
+            else (radius1, radius0)
+
         -- simple optimization: doesn't compute sqrt unless necessary
     in
         if distanceSq == 0 then
@@ -52,8 +57,18 @@ collisionBubbleBubble b0b1 radius0 radius1 =
             let
                 d =
                     sqrt distanceSq
+                penetration =
+                    radiusb0b1 - d
+                normal =
+                    div2 b0b1 d
+                (normal2, penetration2) =
+                    if penetration > smallR*2
+                    then ((1, 0), 0) -- inside, do nothing
+                    else if penetration > smallR
+                    then ((neg normal), penetration) --  inner bump, negate the normal
+                    else ((1, 0), 0) -- (normal, penetration), outside, do nothing 
             in
-                CollisionResult (div2 b0b1 d) (radiusb0b1 - d)
+                CollisionResult (normal2) (penetration2)
 
 
 

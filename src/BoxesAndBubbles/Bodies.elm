@@ -5,7 +5,7 @@ Defines bodies as used by the Boxes and Bubbles engine. You will need these data
 display and modify bodies being calculated. For creating them, you may prefer the constructor
 functions in the BoxesAndBubbles module.
 
-@docs Body, Shape
+@docs Body, Shape, move
 
 -}
 
@@ -50,7 +50,8 @@ type alias Dir =
     , y : Int
     }
 
-
+{-| move a body a certain direction
+-}
 move : Body meta -> Dir -> Body meta
 move body dir =
     let
