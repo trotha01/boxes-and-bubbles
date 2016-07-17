@@ -62,12 +62,12 @@ height =
 
 
 someBodies =
-    [ bubble 20 1 e0 ( -80, 0 ) ( 1.5, 0 ) defaultLabel
+    [ bubble 20 1 e0 ( -80, 0 ) ( -1.5, 0 ) defaultLabel
     -- , bubble 1 inf 0 ( 80, 0 ) ( 0, 0 ) defaultLabel
-    , bubble 15 1 e0 ( 0, 200 ) ( 0.4, -3.0 ) defaultLabel
-    , bubble 5 1 e0 ( 200, -280 ) ( -2, 1 ) defaultLabel
-    , bubble 15 5 0.4 ( 100, 100 ) ( -4, -3 ) defaultLabel
-    , bubble 10 1 e0 ( 200, 200 ) ( -5, -1 ) defaultLabel
+    , bubble 15 1 e0 ( 0, 200 ) ( -0.4, 1.0 ) defaultLabel
+    , bubble 5 1 e0 ( 200, -280 ) ( -1, -1 ) defaultLabel
+    , bubble 15 5 0.4 ( 100, 100 ) ( 1, 1 ) defaultLabel
+    , bubble 10 1 e0 ( 200, 200 ) ( 1, -1 ) defaultLabel
     , box ( 10, 10 ) 1 e0 ( 300, 0 ) ( 0, 0 ) defaultLabel
     , box ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) defaultLabel
     , box ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) defaultLabel
@@ -128,9 +128,9 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
                             -- |> filled blue
                             |>
                                 outlined (solid black)
-                        , info
-                            |> Collage.move ( 0, radius + 16 )
-                        , veloLine
+                        -- , info
+                        --     |> Collage.move ( 0, radius + 16 )
+                        -- , veloLine
                         ]
 
                 Box extents ->
@@ -140,8 +140,8 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
                     in
                         group
                             [ rect (w * 2) (h * 2) |> outlined (solid black)
-                            , info |> Collage.move ( 0, h + 16 )
-                            , veloLine
+                            -- , info |> Collage.move ( 0, h + 16 )
+                            -- , veloLine
                             ]
     in
         Collage.move pos ready
