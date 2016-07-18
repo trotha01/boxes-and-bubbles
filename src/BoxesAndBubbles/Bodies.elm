@@ -1,15 +1,16 @@
-module BoxesAndBubbles.Bodies exposing (Body, Shape(..), move)
+module BoxesAndBubbles.Bodies exposing (Body, Shape(..), move, engulf)
 
 {-| # Boxes and Bubbles Bodies.
 Defines bodies as used by the Boxes and Bubbles engine. You will need these data types to
 display and modify bodies being calculated. For creating them, you may prefer the constructor
 functions in the BoxesAndBubbles module.
 
-@docs Body, Shape, move
+@docs Body, Shape, move, engulf
 
 -}
 
 import BoxesAndBubbles.Math2D exposing (Vec2)
+import Color exposing (Color)
 
 
 {-| A rigid body in the Boxes and Bubbles universe, as used internally by the engine.
@@ -29,6 +30,7 @@ type alias Body meta =
       restitution : Float
     , -- bounciness factor
       shape : Shape
+    , color : Color
     , meta : meta
     }
 
@@ -68,6 +70,29 @@ move body dir =
             ( clamp -4 4 (vX + (toFloat dir.x) / 2), clamp -4 4 (vY + (toFloat dir.y) / 2) )
     in
         { body | pos = newPos, velocity = newVel }
+
+{-| area returns the area of the object -}
+area : Body meta -> Float
+area body =
+    case body.shape of 
+        (Bubble r) -> pi * r * r 
+        (Box (w, l)) -> w * l
+
+increaseSize : Body meta -> Float -> Body meta
+increaseSize body incr =
+    let a = area body
+        newArea = a + incr
+     in case body.shape of 
+        (Bubble _) ->
+            {body|shape = Bubble (sqrt (newArea/pi))}
+        (Box _) ->
+            let side = sqrt newArea
+             in {body|shape = Box (side, side)}
+
+{-| engulf enlargens the first object by half the area of the second -}
+engulf : Body meta -> Body meta -> Body meta
+engulf predator food =
+    increaseSize predator (area food)
 
 
 

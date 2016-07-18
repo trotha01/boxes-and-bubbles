@@ -20,12 +20,15 @@ import List exposing (map)
 import Collage exposing (..)
 import Element exposing (..)
 import Color exposing (..)
-import Text exposing (fromString)
 import AnimationFrame
-import String
 import Time exposing (Time)
 import Keyboard.Extra as Keyboard
 
+{-
+TODO: turn two circles into a square once they are food
+-}
+
+inf : Float
 inf =
     1 / 0
 
@@ -33,7 +36,7 @@ inf =
 
 -- infinity, hell yeah
 
-
+e0 : Float
 e0 =
     0.8
 
@@ -47,36 +50,35 @@ e0 =
 type alias Model meta =
     List (Body meta)
 
-
-defaultLabel =
-    ""
+type alias Meta = Bool
 
 {- meta is used to tell if the body has been eaten -}
+meta : Bool
 meta = False
 
+(height, width) =
+    (600, 600)
 
-width =
-    600
-
-
-height =
-    600
-
+bColor : Color
 bColor = yellow
 
+boxColor : Color
+boxColor = orange
+
+someBodies : List (Body Meta)
 someBodies =
     [ bubble bColor 20 1 e0 ( -80, 0 ) ( -1.5, 0 ) meta
     , bubble bColor 15 1 e0 ( 0, 200 ) ( -0.4, 1.0 ) meta
     , bubble bColor 5 1 e0 ( 200, -200 ) ( -1, -1 ) meta
     , bubble bColor 15 5 0.4 ( 100, 100 ) ( 1, 1 ) meta
     , bubble bColor 10 1 e0 ( 200, 200 ) ( 1, -1 ) meta
-    , box bColor ( 10, 10 ) 1 e0 ( 200, 0 ) ( 0, 0 ) meta
-    , box bColor ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) meta
-    , box bColor ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) meta
+    , box boxColor ( 10, 10 ) 1 e0 ( 200, 0 ) ( 0, 0 ) meta
+    , box boxColor ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) meta
+    , box boxColor ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) meta
     ]
         ++ bounds ( width - 50, height - 50 ) 100 e0 ( 0, 0 ) meta
 
-
+user : Body Meta
 user =
     bubble blue 100 1 e0 ( -80, 0 ) ( 0, 0 ) meta
 
@@ -104,7 +106,7 @@ drawBody { color, pos, velocity, inverseMass, restitution, shape, meta } =
                             extents
                     in
                         group
-                            [ rect (w * 2) (h * 2) |> outlined (solid black)
+                            [ rect (w * 2) (h * 2) |> filled color
                             ]
     in
         Collage.move pos ready
@@ -157,9 +159,13 @@ subs =
         , AnimationFrame.diffs Tick
         ]
 
+swallow : Body Meta -> Body Meta -> ( Body Meta, Body Meta )
+swallow user food =
+    (user, {food|meta=True})
+
 {-| collide assumes a0 is the user, b0 is possible food
 -}
-collide : Body meta -> Body meta -> ( Body meta, Body meta )
+collide : Body Meta -> Body Meta -> ( Body Meta, Body Meta )
 collide a0 b0 =
     let
         collisionResult =
@@ -167,8 +173,10 @@ collide a0 b0 =
 
         (a1, b1) = if collisionResult.penetration > 0
             then case b0.shape of
+                -- if the penetration is greater than 2r, then the food is moving around inside
+                -- if the penetration is less than r, then the food is still being swallowed
                 (Bubble r) -> if collisionResult.penetration > r*2 || collisionResult.penetration < r
-                    then (a0, b0) -- swallow
+                    then swallow a0 b0
                     else (Engine.resolveCollision collisionResult a0 b0)
                 (Box _) -> Engine.resolveCollision collisionResult a0 b0
             else
@@ -177,7 +185,7 @@ collide a0 b0 =
         ( a1, b1 )
 
 
-collideUser : Body meta -> Model meta -> ( Body meta, Model meta )
+collideUser : Body Meta -> Model Meta -> ( Body Meta, Model Meta )
 collideUser user bodies =
     List.foldl
         (\b ( u, bs ) ->
@@ -190,18 +198,79 @@ collideUser user bodies =
         ( user, [] )
         bodies
 
-update : Msg -> ( Body meta, Model meta, Keyboard.Model ) -> ( ( Body meta, Model meta, Keyboard.Model ), Cmd Msg )
+circArea : Float -> Float
+circArea r =
+    pi * r * r
+
+combineShapes : Body Meta -> Body Meta -> Body Meta
+combineShapes a0 b0 =
+    let combined = 
+        case (a0.shape, b0.shape) of
+            (Bubble r1, Bubble r2) ->
+                let a1 = circArea r1
+                    a2 = circArea r2
+                    boxSide = sqrt ((a1 + a2)/2)
+                    in { a0 | shape = Box (boxSide, boxSide), color = boxColor }
+            _ -> { a0 | shape = Box (15, 15) } -- we should never hit this case, only circles are food
+     in {combined|meta = False}
+
+collideBodyWith : Body Meta -> List (Body Meta) -> List (Body Meta) -> List (Body Meta)
+collideBodyWith a0 bodies acc =
+    case bodies of
+        [] ->
+            a0 :: acc
+
+        b0 :: bs ->
+            let
+                collisionResult =
+                    Engine.collision a0 b0
+
+                in if collisionResult.penetration > 0
+                        && a0.meta == True
+                        && b0.meta == True
+                then 
+                    let combined = combineShapes a0 b0
+                     in collideBodyWith combined bs (acc)
+                else
+                    let ( a1, b1 ) =
+                        Engine.resolveCollision collisionResult a0 b0
+                    in
+                        collideBodyWith a1 bs (b1 :: acc)
+
+collideBodiesAcc  : List (Body Meta) -> List (Body Meta) -> List (Body Meta)
+collideBodiesAcc acc bodies =
+    case bodies of
+        [] ->
+            acc
+
+        h :: t ->
+            case collideBodyWith h t [] of
+                [] ->
+                    []
+
+                h1 :: t1 ->
+                    collideBodiesAcc (h1 :: acc) t1
+
+collideBodies : Float -> Model Meta -> Model Meta
+collideBodies dt bodies =
+    -- uncurry step (noGravity dt) bodies
+    List.map (uncurry Engine.update (noGravity dt)) (collideBodiesAcc [] bodies)
+
+update : Msg -> ( Body Meta, Model Meta, Keyboard.Model ) -> ( ( Body Meta, Model Meta, Keyboard.Model ), Cmd Msg )
 update msg ( user, bodies, keyboard ) =
     case msg of
         Tick dt ->
             let
-                ( collidedUser, collidedBodies ) =
+                ( collidedUser, userCollidedBodies ) =
                     collideUser user bodies
 
                 newUser =
                     (uncurry Engine.update (noGravity dt)) collidedUser
+
+                collidedBodies =
+                    collideBodies dt userCollidedBodies
             in
-                ( ( newUser, (uncurry step (noGravity dt) collidedBodies), keyboard ), Cmd.none )
+                ( ( newUser, (collidedBodies), keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let

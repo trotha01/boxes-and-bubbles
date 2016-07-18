@@ -50,6 +50,7 @@ import BoxesAndBubbles.Engine exposing (..)
 import BoxesAndBubbles.Bodies exposing (..)
 import BoxesAndBubbles.Math2D exposing (Vec2)
 import List
+import Color exposing (Color, black)
 
 
 -- constructors
@@ -64,13 +65,14 @@ at origin and a string "tag", moving toward the upper right:
 
     bubble 100 1 1 (0,0) (3,3) "tag"
 -}
-bubble : Float -> Float -> Float -> Vec2 -> Vec2 -> meta -> Body meta
-bubble radius density restitution pos velocity meta =
+bubble : Color -> Float -> Float -> Float -> Vec2 -> Vec2 -> meta -> Body meta
+bubble color radius density restitution pos velocity meta =
     { pos = pos
     , velocity = velocity
     , inverseMass = 1 / (pi * radius * radius * density)
     , restitution = restitution
     , shape = Bubble radius
+    , color = color
     , meta = meta
     }
 
@@ -84,13 +86,14 @@ at origin, moving toward the upper right:
 
     box (100,20) 1 1 (0,0) (3,3)
 -}
-box : Vec2 -> Float -> Float -> Vec2 -> Vec2 -> meta -> Body meta
-box ( w, h ) density restitution pos velocity meta =
+box : Color -> Vec2 -> Float -> Float -> Vec2 -> Vec2 -> meta -> Body meta
+box color ( w, h ) density restitution pos velocity meta =
     { pos = pos
     , velocity = velocity
     , inverseMass = 1 / (w * h * density)
     , restitution = restitution
     , shape = Box ( w / 2, h / 2 )
+    , color = color
     , meta = meta
     }
 
@@ -117,10 +120,10 @@ bounds ( w, h ) thickness restitution ( cx, cy ) meta =
         inf =
             1 / 0
     in
-        [ box ( w, thickness ) inf restitution ( cx, hExt + halfThick ) ( 0, 0 ) meta
-        , box ( w, thickness ) inf restitution ( cx, -(hExt + halfThick) ) ( 0, 0 ) meta
-        , box ( thickness, h ) inf restitution ( wExt + halfThick, cy ) ( 0, 0 ) meta
-        , box ( thickness, h ) inf restitution ( -(hExt + halfThick), cy ) ( 0, 0 ) meta
+        [ box black ( w, thickness ) inf restitution ( cx, hExt + halfThick ) ( 0, 0 ) meta
+        , box black ( w, thickness ) inf restitution ( cx, -(hExt + halfThick) ) ( 0, 0 ) meta
+        , box black ( thickness, h ) inf restitution ( wExt + halfThick, cy ) ( 0, 0 ) meta
+        , box black ( thickness, h ) inf restitution ( -(hExt + halfThick), cy ) ( 0, 0 ) meta
         ]
 
 
