@@ -52,14 +52,21 @@ e0 =
 type alias Model meta =
     List (Body meta)
 
-type alias Meta = Bool
+type alias Meta =
+    { isFood: Bool
+    , isWall: Bool
+    , dir: BoxesAndBubbles.Math2D.Vec2 
+    }
 
 {- meta is used to tell if the body has been eaten -}
-meta : Bool
-meta = False
+meta : Meta
+meta = Meta False False (0,0)
+
+wallMeta: Meta
+wallMeta = Meta False True (0,0)
 
 (height, width) =
-    (700, 800)
+    (700, 700)
 
 bColor : Color
 bColor = yellow
@@ -78,13 +85,12 @@ someBodies =
     , box boxColor ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) meta
     , box boxColor ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) meta
     ]
-        ++ bounds ( width, height) 100 e0 ( 0, 0 ) meta
+        ++ bounds ( 500, 500) 10 e0 ( 0, 0 ) wallMeta
+        ++ bounds ( width-10, height-10) 10 e0 ( 0, 0 ) meta
 
 user : Body Meta
 user =
-    bubble blue 100 1 e0 ( -80, 0 ) ( 0, 0 ) meta
-
--- why yes, it draws a body with label. Or creates the Element, rather
+    bubble blue 100 1 e0 ( -80, 0 ) ( 1, 0 ) meta
 
 
 drawBody : Body meta -> Form
@@ -100,6 +106,7 @@ drawBody { color, pos, velocity, inverseMass, restitution, shape, meta } =
                     group
                         [ circle radius
                             |> filled color
+                        , veloLine
                         ]
 
                 Box extents ->
@@ -163,7 +170,7 @@ subs =
 
 swallow : Body Meta -> Body Meta -> ( Body Meta, Body Meta )
 swallow user food =
-    (user, {food|meta=True})
+    (user, {food|meta={meta|isFood=True}})
 
 {-| collide assumes a0 is the user, b0 is possible food
 -}
@@ -177,10 +184,12 @@ collide a0 b0 =
             then case b0.shape of
                 -- if the penetration is greater than 2r, then the food is moving around inside
                 -- if the penetration is less than r, then the food is still being swallowed
-                (Bubble r) -> if collisionResult.penetration > r*2 || collisionResult.penetration < r
+                (Bubble r) ->
+                    if collisionResult.penetration > r*2 || collisionResult.penetration < r
                     then swallow a0 b0
                     else (Engine.resolveCollision collisionResult a0 b0)
-                (Box _) -> Engine.resolveCollision collisionResult a0 b0
+                (Box _) ->
+                    Engine.resolveCollision collisionResult a0 b0
             else
                 Engine.resolveCollision collisionResult a0 b0
     in
@@ -214,7 +223,7 @@ combineShapes a0 b0 =
                     boxSide = sqrt ((a1 + a2)/2)
                     in { a0 | shape = Box (boxSide, boxSide), color = boxColor }
             _ -> { a0 | shape = Box (15, 15) } -- we should never hit this case, only circles are food
-     in {combined|meta = False}
+     in {combined|meta={meta|isFood=False}}
 
 collideBodyWith : Body Meta -> List (Body Meta) -> List (Body Meta) -> List (Body Meta)
 collideBodyWith a0 bodies acc =
@@ -228,11 +237,14 @@ collideBodyWith a0 bodies acc =
                     Engine.collision a0 b0
 
                 in if collisionResult.penetration > 0
-                        && a0.meta == True
-                        && b0.meta == True
+                        && a0.meta.isFood == True
+                        && b0.meta.isFood == True
                 then 
                     let combined = combineShapes a0 b0
                      in collideBodyWith combined bs (acc)
+                else if collisionResult.penetration > 0
+                    && a0.meta.isWall == True || b0.meta.isWall == True
+                    then collideBodyWith a0 bs (b0 :: acc)
                 else
                     let ( a1, b1 ) =
                         Engine.resolveCollision collisionResult a0 b0

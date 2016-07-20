@@ -9,7 +9,7 @@ functions in the BoxesAndBubbles module.
 
 -}
 
-import BoxesAndBubbles.Math2D exposing (Vec2)
+import BoxesAndBubbles.Math2D exposing (Vec2, plus, norm, mul2, lenSq)
 import Color exposing (Color)
 
 
@@ -60,16 +60,35 @@ move body dir =
         ( x, y ) =
             body.pos
 
+        -- TODO: if down button, stop at 0, don't go backwards
+
         ( vX, vY ) =
             body.velocity
 
-        newPos =
-            ( x + (toFloat dir.x), y + (toFloat dir.y) )
+        -- _ = Debug.log "curVel" body.velocity
+
+        -- len =
+        --     (sqrt (lenSq body.velocity))
+
+        -- newLen =
+        --     (len + (toFloat dir.y))
+
+        -- mulFactor =
+        --     Debug.log "mulFactor" (len/newLen)
+
+        -- newPos =
+        --     ( x + (toFloat dir.x), y + (toFloat dir.y) )
+
+        -- newVel =
+        --     Debug.log "vel" (mul2 body.velocity (newLen / len))
+
+        -- turn =
+        --     (plus newVel (mul2 (norm body.velocity) (toFloat dir.x)))
 
         newVel =
-            ( clamp -4 4 (vX + (toFloat dir.x) / 2), clamp -4 4 (vY + (toFloat dir.y) / 2) )
+            ( clamp -2 2 (vX + (toFloat dir.x) / 2), clamp -4 4 (vY + (toFloat dir.y) / 2) )
     in
-        { body | pos = newPos, velocity = newVel }
+        { body | velocity = newVel }
 
 {-| area returns the area of the object -}
 area : Body meta -> Float
