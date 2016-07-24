@@ -15,7 +15,7 @@ import Html.App exposing (program)
 import BoxesAndBubbles.Bodies as Bodies exposing (..)
 import BoxesAndBubbles.Engine as Engine
 import BoxesAndBubbles exposing (..)
-import BoxesAndBubbles.Math2D exposing (mul2)
+import BoxesAndBubbles.Math2D exposing (mul2,plus)
 import List exposing (map)
 import Collage exposing (..)
 import Element exposing (..)
@@ -27,7 +27,6 @@ import Keyboard.Extra as Keyboard
 {-
 TODO: make user larger when they eat food
 auto generate random shapes
-point user in specific direction (to help wall bounce flow)
 -}
 
 inf : Float
@@ -55,24 +54,28 @@ type alias Model meta =
 type alias Meta =
     { isFood: Bool
     , isWall: Bool
+    , isBound: Bool
     , dir: BoxesAndBubbles.Math2D.Vec2 
     }
 
 {- meta is used to tell if the body has been eaten -}
 meta : Meta
-meta = Meta False False (0,0)
+meta = Meta False False False (0,0)
 
 wallMeta: Meta
-wallMeta = Meta False True (0,0)
+wallMeta = Meta False True False (0,0)
+
+boundMeta: Meta
+boundMeta = Meta False False True (0,0)
 
 (height, width) =
     (700, 700)
 
 bColor : Color
-bColor = yellow
+bColor = rgb 238 130 238 
 
 boxColor : Color
-boxColor = orange
+boxColor = lightBlue
 
 someBodies : List (Body Meta)
 someBodies =
@@ -80,17 +83,21 @@ someBodies =
     , bubble bColor 15 1 e0 ( 0, 200 ) ( -0.4, 1.0 ) meta
     , bubble bColor 5 1 e0 ( 200, -200 ) ( -1, -1 ) meta
     , bubble bColor 15 5 0.4 ( 100, 100 ) ( 1, 1 ) meta
-    , bubble bColor 10 1 e0 ( 200, 200 ) ( 1, -1 ) meta
+    , bubble bColor 10 1 e0 ( 125, 125 ) ( 1, -1 ) meta
+    , bubble bColor 15 1 e0 ( 122, 56 ) ( -0.4, 1.0 ) meta
+    , bubble bColor 5 1 e0 ( 10, -20 ) ( -1, -1 ) meta
+    , bubble bColor 15 5 0.4 ( 115, 178 ) ( 1, 1 ) meta
+    , bubble bColor 10 1 e0 ( 215, 234 ) ( 1, -1 ) meta
     , box boxColor ( 10, 10 ) 1 e0 ( 200, 0 ) ( 0, 0 ) meta
     , box boxColor ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) meta
     , box boxColor ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) meta
     ]
-        ++ bounds ( 500, 500) 10 e0 ( 0, 0 ) wallMeta
-        ++ bounds ( width-10, height-10) 10 e0 ( 0, 0 ) meta
+        ++ bounds ( width-10, width-10) 10 e0 ( 0, 0 ) wallMeta
+        ++ bounds ( width+300, height+300) 10 e0 ( 0, 0 ) boundMeta
 
 user : Body Meta
 user =
-    bubble blue 100 1 e0 ( -80, 0 ) ( 1, 0 ) meta
+    bubble purple 100 1 e0 ( -80, 0 ) ( 1, 0 ) meta
 
 
 drawBody : Body meta -> Form
@@ -106,7 +113,7 @@ drawBody { color, pos, velocity, inverseMass, restitution, shape, meta } =
                     group
                         [ circle radius
                             |> filled color
-                        , veloLine
+                        -- , veloLine
                         ]
 
                 Box extents ->
@@ -225,11 +232,18 @@ combineShapes a0 b0 =
             _ -> { a0 | shape = Box (15, 15) } -- we should never hit this case, only circles are food
      in {combined|meta={meta|isFood=False}}
 
-collideBodyWith : Body Meta -> List (Body Meta) -> List (Body Meta) -> List (Body Meta)
+{-| regenerate is used when a body has reached the bounds
+it regenerates a new body at the opposite end
+-}
+regenerate : Body Meta -> Body Meta
+regenerate body =
+    { body | pos = mul2 body.pos (-15/16), velocity = plus (0, 0.2) (mul2 body.velocity (1/2))}
+
+collideBodyWith : Body Meta -> List (Body Meta) -> List (Body Meta) -> (List (Body Meta), Cmd Msg)
 collideBodyWith a0 bodies acc =
     case bodies of
         [] ->
-            a0 :: acc
+            (a0 :: acc, Cmd.none)
 
         b0 :: bs ->
             let
@@ -239,36 +253,44 @@ collideBodyWith a0 bodies acc =
                 in if collisionResult.penetration > 0
                         && a0.meta.isFood == True
                         && b0.meta.isFood == True
-                then 
+                then -- combine the food. TODO: create a new object when this happens
                     let combined = combineShapes a0 b0
                      in collideBodyWith combined bs (acc)
-                else if collisionResult.penetration > 0
-                    && a0.meta.isWall == True || b0.meta.isWall == True
+                else if collisionResult.penetration > 0 -- let bodies through the wall
+                    && (a0.meta.isWall == True || b0.meta.isWall == True)
                     then collideBodyWith a0 bs (b0 :: acc)
+                else if collisionResult.penetration > 0 -- recreate objects when they dissapear
+                    && (a0.meta.isBound == True || b0.meta.isBound == True)
+                    then -- move object to opposite side
+                        if a0.meta.isBound
+                        then collideBodyWith a0 bs ((regenerate b0) :: acc)
+                        else collideBodyWith (regenerate a0) bs (b0 :: acc)
+
                 else
                     let ( a1, b1 ) =
                         Engine.resolveCollision collisionResult a0 b0
                     in
                         collideBodyWith a1 bs (b1 :: acc)
 
-collideBodiesAcc  : List (Body Meta) -> List (Body Meta) -> List (Body Meta)
+collideBodiesAcc  : List (Body Meta) -> List (Body Meta) -> (List (Body Meta), Cmd Msg)
 collideBodiesAcc acc bodies =
     case bodies of
         [] ->
-            acc
+            (acc, Cmd.none)
 
         h :: t ->
             case collideBodyWith h t [] of
-                [] ->
-                    []
+                ([], cmd) ->
+                    ([], cmd)
 
-                h1 :: t1 ->
+                (h1 :: t1, cmd) ->
                     collideBodiesAcc (h1 :: acc) t1
 
-collideBodies : Float -> Model Meta -> Model Meta
+collideBodies : Float -> Model Meta -> (Model Meta, Cmd Msg)
 collideBodies dt bodies =
-    -- uncurry step (noGravity dt) bodies
-    List.map (uncurry Engine.update (noGravity dt)) (collideBodiesAcc [] bodies)
+    let (collidedBodies, cmd) = collideBodiesAcc [] bodies
+    in (List.map (uncurry Engine.update (noGravity dt)) collidedBodies
+        , cmd)
 
 update : Msg -> ( Body Meta, Model Meta, Keyboard.Model ) -> ( ( Body Meta, Model Meta, Keyboard.Model ), Cmd Msg )
 update msg ( user, bodies, keyboard ) =
@@ -281,11 +303,14 @@ update msg ( user, bodies, keyboard ) =
                 newUser =
                     (uncurry Engine.update (noGravity dt)) collidedUser
 
-                collidedBodies =
+                (collidedBodies, cmd) =
                     collideBodies dt userCollidedBodies
+                -- TODO: have collideBodies return a possible message here to 
+                -- create a new item, with the type of item and where
             in
-                ( ( newUser, (collidedBodies), keyboard ), Cmd.none )
+                ( ( newUser, (collidedBodies), keyboard ), cmd )
 
+        -- TODO: have a message for creating a new object coming from a certain direction.
         KeyPress keyMsg ->
             let
                 ( kybrd, keyboardCmd ) =
