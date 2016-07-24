@@ -23,6 +23,7 @@ import Color exposing (..)
 import AnimationFrame
 import Time exposing (Time)
 import Keyboard.Extra as Keyboard
+import Random
 
 {-
 TODO: make user larger when they eat food
@@ -49,13 +50,21 @@ e0 =
 
 
 type alias Model meta =
-    List (Body meta)
+    { bodies: List (Body meta)
+    , seed: Random.Seed
+    }
 
 type alias Meta =
     { isFood: Bool
     , isWall: Bool
     , isBound: Bool
     , dir: BoxesAndBubbles.Math2D.Vec2 
+    }
+
+initialModel : Model Meta
+initialModel =
+    { bodies = someBodies,
+      seed = Random.initialSeed 3
     }
 
 {- meta is used to tell if the body has been eaten -}
@@ -77,21 +86,31 @@ bColor = rgb 238 130 238
 boxColor : Color
 boxColor = lightBlue
 
+(bubbleCount, boxCount) = (20,10)
+
+randBubbles : Random.Generator (List (Body Meta))
+randBubbles =
+    Random.list bubbleCount (randBubble bColor e0 (-200,200) (-3,3) meta)
+
+randBoxes : Random.Generator (List (Body Meta))
+randBoxes =
+    Random.list boxCount (randBox boxColor e0 (-200,200) (5, 30) meta)
+
+randBody : Random.Generator (Body Meta)
+randBody =
+    Random.bool `Random.andThen` (\coin ->
+                if coin
+                then randBubble bColor e0 (-200,200) (-3,3) meta
+                else randBox boxColor e0 (-200,200) (5, 30) meta)
+
 someBodies : List (Body Meta)
 someBodies =
-    [ bubble bColor 20 1 e0 ( -80, 0 ) ( -1.5, 0 ) meta
-    , bubble bColor 15 1 e0 ( 0, 200 ) ( -0.4, 1.0 ) meta
-    , bubble bColor 5 1 e0 ( 200, -200 ) ( -1, -1 ) meta
-    , bubble bColor 15 5 0.4 ( 100, 100 ) ( 1, 1 ) meta
-    , bubble bColor 10 1 e0 ( 125, 125 ) ( 1, -1 ) meta
-    , bubble bColor 15 1 e0 ( 122, 56 ) ( -0.4, 1.0 ) meta
-    , bubble bColor 5 1 e0 ( 10, -20 ) ( -1, -1 ) meta
-    , bubble bColor 15 5 0.4 ( 115, 178 ) ( 1, 1 ) meta
-    , bubble bColor 10 1 e0 ( 215, 234 ) ( 1, -1 ) meta
-    , box boxColor ( 10, 10 ) 1 e0 ( 200, 0 ) ( 0, 0 ) meta
-    , box boxColor ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) meta
-    , box boxColor ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) meta
-    ]
+    let (bubbles, seed2) =
+            Random.step randBubbles (Random.initialSeed 2)
+        (boxes, seed3) =
+            Random.step randBoxes seed2
+        in bubbles
+        ++ boxes
         ++ bounds ( width-10, width-10) 10 e0 ( 0, 0 ) wallMeta
         ++ bounds ( width+300, height+300) 10 e0 ( 0, 0 ) boundMeta
 
@@ -129,8 +148,8 @@ drawBody { color, pos, velocity, inverseMass, restitution, shape, meta } =
 
 
 scene : ( Body meta, Model meta, Keyboard.Model ) -> Element
-scene ( user, bodies, keyboard ) =
-    collage width height <| map drawBody (user :: bodies)
+scene ( user, model, keyboard ) =
+    collage width height <| map drawBody (user :: model.bodies)
 
 
 
@@ -204,17 +223,18 @@ collide a0 b0 =
 
 
 collideUser : Body Meta -> Model Meta -> ( Body Meta, Model Meta )
-collideUser user bodies =
-    List.foldl
-        (\b ( u, bs ) ->
-            let
-                ( u2, b2 ) =
-                    collide u b
-            in
-                ( u2, b2 :: bs )
-        )
-        ( user, [] )
-        bodies
+collideUser user model =
+    let (user, newBodies) = List.foldl
+            (\b ( u, bs ) ->
+                let
+                    ( u2, b2 ) =
+                        collide u b
+                in
+                    ( u2, b2 :: bs )
+            )
+            ( user, [] )
+            model.bodies
+    in (user, {model|bodies = newBodies})
 
 circArea : Float -> Float
 circArea r =
@@ -235,15 +255,17 @@ combineShapes a0 b0 =
 {-| regenerate is used when a body has reached the bounds
 it regenerates a new body at the opposite end
 -}
-regenerate : Body Meta -> Body Meta
-regenerate body =
-    { body | pos = mul2 body.pos (-15/16), velocity = plus (0, 0.2) (mul2 body.velocity (1/2))}
+regenerate : Float -> Body Meta -> Body Meta
+regenerate dt body =
+    let (newBody, _) = (Random.step randBody (Random.initialSeed (round dt)))
+        _ = Debug.log "time" dt
+    in { newBody |  pos = mul2 body.pos (-15/16), velocity = plus (0, 0.2) (mul2 body.velocity (1/2))}
 
-collideBodyWith : Body Meta -> List (Body Meta) -> List (Body Meta) -> (List (Body Meta), Cmd Msg)
-collideBodyWith a0 bodies acc =
+collideBodyWith : Float -> Body Meta -> List (Body Meta) -> List (Body Meta) -> (List (Body Meta))
+collideBodyWith dt a0 bodies acc =
     case bodies of
         [] ->
-            (a0 :: acc, Cmd.none)
+            (a0 :: acc)
 
         b0 :: bs ->
             let
@@ -255,42 +277,42 @@ collideBodyWith a0 bodies acc =
                         && b0.meta.isFood == True
                 then -- combine the food. TODO: create a new object when this happens
                     let combined = combineShapes a0 b0
-                     in collideBodyWith combined bs (acc)
+                     in collideBodyWith dt combined bs (acc)
                 else if collisionResult.penetration > 0 -- let bodies through the wall
                     && (a0.meta.isWall == True || b0.meta.isWall == True)
-                    then collideBodyWith a0 bs (b0 :: acc)
+                    then collideBodyWith dt a0 bs (b0 :: acc)
                 else if collisionResult.penetration > 0 -- recreate objects when they dissapear
                     && (a0.meta.isBound == True || b0.meta.isBound == True)
                     then -- move object to opposite side
                         if a0.meta.isBound
-                        then collideBodyWith a0 bs ((regenerate b0) :: acc)
-                        else collideBodyWith (regenerate a0) bs (b0 :: acc)
+                        then collideBodyWith dt a0 bs ((regenerate dt b0) :: acc)
+                        else collideBodyWith dt (regenerate dt a0) bs (b0 :: acc)
 
                 else
                     let ( a1, b1 ) =
                         Engine.resolveCollision collisionResult a0 b0
                     in
-                        collideBodyWith a1 bs (b1 :: acc)
+                        collideBodyWith dt a1 bs (b1 :: acc)
 
-collideBodiesAcc  : List (Body Meta) -> List (Body Meta) -> (List (Body Meta), Cmd Msg)
-collideBodiesAcc acc bodies =
+collideBodiesAcc  : Float -> List (Body Meta) -> List (Body Meta) -> (List (Body Meta))
+collideBodiesAcc dt acc bodies =
     case bodies of
         [] ->
-            (acc, Cmd.none)
+            (acc)
 
         h :: t ->
-            case collideBodyWith h t [] of
-                ([], cmd) ->
-                    ([], cmd)
+            case collideBodyWith dt h t [] of
+                [] ->
+                    ([])
 
-                (h1 :: t1, cmd) ->
-                    collideBodiesAcc (h1 :: acc) t1
+                (h1 :: t1) ->
+                    collideBodiesAcc dt (h1 :: acc) t1
 
-collideBodies : Float -> Model Meta -> (Model Meta, Cmd Msg)
-collideBodies dt bodies =
-    let (collidedBodies, cmd) = collideBodiesAcc [] bodies
-    in (List.map (uncurry Engine.update (noGravity dt)) collidedBodies
-        , cmd)
+collideBodies : Float -> Model Meta -> (Model Meta)
+collideBodies dt model =
+    let (collidedBodies) = collideBodiesAcc dt [] model.bodies
+        newBodies = List.map (uncurry Engine.update (noGravity dt)) collidedBodies
+    in  ({model|bodies = newBodies})
 
 update : Msg -> ( Body Meta, Model Meta, Keyboard.Model ) -> ( ( Body Meta, Model Meta, Keyboard.Model ), Cmd Msg )
 update msg ( user, bodies, keyboard ) =
@@ -303,14 +325,12 @@ update msg ( user, bodies, keyboard ) =
                 newUser =
                     (uncurry Engine.update (noGravity dt)) collidedUser
 
-                (collidedBodies, cmd) =
+                (collidedBodies) =
                     collideBodies dt userCollidedBodies
-                -- TODO: have collideBodies return a possible message here to 
-                -- create a new item, with the type of item and where
-            in
-                ( ( newUser, (collidedBodies), keyboard ), cmd )
 
-        -- TODO: have a message for creating a new object coming from a certain direction.
+            in
+                ( ( newUser, (collidedBodies), keyboard ), Cmd.none )
+
         KeyPress keyMsg ->
             let
                 ( kybrd, keyboardCmd ) =
@@ -334,7 +354,7 @@ main =
             Keyboard.init
     in
         program
-            { init = ( ( user, someBodies, keyboard ), Cmd.map KeyPress keyboardCmd )
+            { init = ( ( user, initialModel, keyboard ), Cmd.map KeyPress keyboardCmd )
             , update = update
             , subscriptions = always subs
             , view = scene >> Element.toHtml

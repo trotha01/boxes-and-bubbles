@@ -1,4 +1,4 @@
-module BoxesAndBubbles exposing (bubble, box, bounds, step)
+module BoxesAndBubbles exposing (bubble, box, bounds, step, randBubble, randBox)
 
 {-| The interface for the Boxes and Bubbles physics engine.
 
@@ -38,7 +38,7 @@ Ambient force takes the mass of objects into account, while gravity does not.
 
 ## Constructors and helpers
 
-@docs bubble, box, bounds
+@docs bubble, box, bounds, randBubble, randBox
 
 ## Running the simulation
 
@@ -51,6 +51,7 @@ import BoxesAndBubbles.Bodies exposing (..)
 import BoxesAndBubbles.Math2D exposing (Vec2)
 import List
 import Color exposing (Color, black)
+import Random
 
 
 -- constructors
@@ -76,6 +77,20 @@ bubble color radius density restitution pos velocity meta =
     , meta = meta
     }
 
+randVel : Random.Generator (Float, Float)
+randVel = Random.pair (Random.float -3 3) (Random.float -3 3) 
+
+{-| randBubble takes the (min,max) x position
+    and the (min,max) y position
+-}
+randBubble : Color -> Float -> (Float, Float) -> (Float, Float) -> meta -> Random.Generator (Body meta)
+randBubble color restitution (minX,maxX) (minY, maxY) meta =
+    let pos = Random.pair (Random.float minX maxX) (Random.float minY maxY)
+        radius = Random.float 5 30
+        density = Random.float 1 3
+    in Random.map4 (\(x,y) (vX,vY) r d ->
+                bubble color r d restitution (x,y) (vX, vY) meta)
+            pos randVel radius density  
 
 {-| Create a box. Mass is derived from density and size.
 
@@ -96,6 +111,19 @@ box color ( w, h ) density restitution pos velocity meta =
     , color = color
     , meta = meta
     }
+
+
+{-| randBox takes the (min,max) x position
+    and the (min,max) y position
+-}
+randBox : Color -> Float -> (Float, Float) -> (Float, Float) -> meta -> Random.Generator (Body meta)
+randBox color restitution (minX,maxX) (minY, maxY) meta =
+    let pos = Random.pair (Random.float 10 30) (Random.float 10 30)
+        wh = Random.pair (Random.float minX maxX) (Random.float minY maxY)
+        density = Random.float 1 3
+    in Random.map4 (\(x,y) (vX,vY) (w,h) d ->
+                box color (w,h) d restitution (x,y) (vX, vY) meta)
+            pos randVel wh density  
 
 
 {-| Create a bounding box made up of boxes with infinite mass.
