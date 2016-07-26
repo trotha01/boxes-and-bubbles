@@ -13,7 +13,6 @@ The scene is updated after each animation frame.
 
 import Html.App exposing (program)
 import BoxesAndBubbles.Body as Body exposing (..)
-import BoxesAndBubbles.Engine as Engine
 import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Math2D exposing (mul2,plus)
 import List exposing (map)
@@ -26,6 +25,7 @@ import Keyboard.Extra as Keyboard
 import Random
 import User exposing (init)
 import Bodies
+import Wall
 
 {-
 TODO: make user larger when they eat food
@@ -56,6 +56,7 @@ type alias Model meta =
     { bodies: List (Body meta)
     , seed: Random.Seed
     , user: User.Model meta
+    , wall: Wall.Model meta
     }
 
 type alias Meta =
@@ -70,6 +71,7 @@ initialModel =
     { bodies = someBodies
     ,  seed = Random.initialSeed 3
     ,  user = User.init
+    ,  wall = Wall.init width
     }
 
 {- meta is used to tell if the body has been eaten -}
@@ -201,8 +203,11 @@ update msg ( model, keyboard ) =
                 (bodies3, cmd) = -- update the body collisions
                     Bodies.update (Bodies.Tick dt) bodies2
 
+                (_, bodies4) =
+                    Wall.collideWith model.wall bodies3
+
             in
-                ( ( {model| user = user2, bodies = bodies3 }, keyboard ), Cmd.map BodiesMsg cmd )
+                ( ( {model| user = user2, bodies = bodies4 }, keyboard ), Cmd.map BodiesMsg cmd )
 
         KeyPress keyMsg ->
             let

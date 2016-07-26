@@ -73,7 +73,15 @@ collideWithBody user body =
                 -- if the penetration is greater than 2r, then the food is moving around inside
                 -- if the penetration is less than r, then the food is still being swallowed
                 (Bubble r) ->
-                    if collisionResult.penetration > (r*2) || collisionResult.penetration < r
+                    if collisionResult.penetration < r
+                    then let cr = {collisionResult | normal = mul2 collisionResult.normal -1}
+                             (user1, body1) = (Engine.resolveCollision cr user body)
+                          in swallow user1 body1
+                   else if collisionResult.penetration < r+3 -- suck in
+                    then let cr = {collisionResult | normal = (mul2 collisionResult.normal -2)}
+                             (user1, body1) = (Engine.resolveCollision cr user body)
+                          in swallow user1 body1
+                    else if collisionResult.penetration > (r*2) -- || collisionResult.penetration < r
                     then swallow user body
                     else (Engine.resolveCollision collisionResult user body)
                 (Box _) ->

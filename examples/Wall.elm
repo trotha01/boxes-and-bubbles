@@ -36,6 +36,14 @@ init width =
 type Msg
     = Tick Time
 
+collideWith : Model Meta -> List (Body Meta) -> (Model Meta, List (Body Meta))
+collideWith model bodies
+    = (model, bodies)
+
+
+collideWithWall : Body Meta -> List (Body Meta) -> (Body Meta, List (Body Meta))
+collideWithWall wall bodies
+    = (wall, bodies)
 
 -- VIEW
 view : Model meta -> List Form
