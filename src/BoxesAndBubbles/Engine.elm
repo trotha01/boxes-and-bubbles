@@ -16,7 +16,7 @@ No implication of API stability.
 
 import List exposing (..)
 import BoxesAndBubbles.Math2D exposing (..)
-import BoxesAndBubbles.Bodies exposing (Body, Shape(..))
+import BoxesAndBubbles.Body exposing (Body, Shape(..))
 
 
 -- collision calculation for different types of bodies

@@ -1,4 +1,4 @@
-module BoxesAndBubbles.Bodies exposing (Body, Shape(..), move, engulf)
+module BoxesAndBubbles.Body exposing (Body, Shape(..), move, engulf)
 
 {-| # Boxes and Bubbles Bodies.
 Defines bodies as used by the Boxes and Bubbles engine. You will need these data types to
