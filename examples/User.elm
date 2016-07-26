@@ -106,7 +106,7 @@ view model =
         let
         veloLine =
             segment ( 0, 0 ) (mul2 model.velocity 5) |> traced (solid red)
-        in
+        ready =
             case model.shape of
                 Bubble radius ->
                     group
@@ -123,7 +123,8 @@ view model =
                         group
                             [ rect (w * 2) (h * 2) |> filled model.color
                             ]
-
+    in
+        Collage.move model.pos ready
 
 -- helpers
 

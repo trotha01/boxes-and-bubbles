@@ -7,7 +7,6 @@ import BoxesAndBubbles.Math2D exposing (mul2,plus)
 import Color exposing (..)
 import Collage exposing (..)
 import Time exposing (Time)
-import Keyboard.Extra as Keyboard
 import Random
 
 -- MODEL
@@ -65,7 +64,11 @@ someBodies =
 -- UPDATE
 type Msg
     = Tick Time
-    | KeyPress Keyboard.Msg
+
+update : Msg -> Model Meta -> (Model Meta, Cmd Msg)
+update msg model =
+    case msg of
+        Tick dt -> collideBodies dt model
 
 {-| regenerate is used when a body has reached the bounds
 it regenerates a new body at the opposite end
@@ -161,7 +164,7 @@ drawBody model =
         let
         veloLine =
             segment ( 0, 0 ) (mul2 model.velocity 5) |> traced (solid red)
-        in
+        ready =
             case model.shape of
                 Bubble radius ->
                     group
@@ -178,7 +181,8 @@ drawBody model =
                         group
                             [ rect (w * 2) (h * 2) |> filled model.color
                             ]
-
+    in
+        Collage.move model.pos ready
 
 
 -- helpers

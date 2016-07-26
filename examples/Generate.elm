@@ -125,37 +125,10 @@ user =
 
 -- VIEW
 
-drawBody : Body meta -> Form
-drawBody { color, pos, velocity, inverseMass, restitution, shape, meta } =
-    let
-        veloLine =
-            segment ( 0, 0 ) (mul2 velocity 5) |> traced (solid red)
-
-
-        ready =
-            case shape of
-                Bubble radius ->
-                    group
-                        [ circle radius
-                            |> filled color
-                        -- , veloLine
-                        ]
-
-                Box extents ->
-                    let
-                        ( w, h ) =
-                            extents
-                    in
-                        group
-                            [ rect (w * 2) (h * 2) |> filled color
-                            ]
-    in
-        Collage.move pos ready
-
-
 scene : ( Model meta, Keyboard.Model ) -> Element
 scene ( model, keyboard ) =
-    collage width height <| map drawBody (model.user :: model.bodies)
+    collage width height 
+        <| ( (User.view model.user) :: Bodies.view model.bodies )
 
 
 
@@ -204,27 +177,6 @@ subs =
         ]
 
 
-collideUser : Body Meta -> Model Meta -> ( Body Meta, Model Meta )
-collideUser user model =
-    let (user, newBodies) = User.collideWithBodies user model.bodies
-     in (user, {model|bodies = newBodies})
-
-circArea : Float -> Float
-circArea r =
-    pi * r * r
-
-combineShapes : Body Meta -> Body Meta -> Body Meta
-combineShapes a0 b0 =
-    let combined = 
-        case (a0.shape, b0.shape) of
-            (Bubble r1, Bubble r2) ->
-                let a1 = circArea r1
-                    a2 = circArea r2
-                    boxSide = sqrt ((a1 + a2)/2)
-                    in { a0 | shape = Box (boxSide, boxSide), color = boxColor }
-            _ -> { a0 | shape = Box (15, 15) } -- we should never hit this case, only circles are food
-     in {combined|meta={meta|isFood=False}}
-
 {-| regenerate is used when a body has reached the bounds
 it regenerates a new body at the opposite end
 -}
@@ -239,18 +191,18 @@ update msg ( model, keyboard ) =
     case msg of
         Tick dt ->
             let
-                ((newUser, _), _) = -- update user per keyboard presses
+                ((user1, _), _) = -- update user per keyboard presses
                     User.update (User.Tick dt) (model.user, keyboard)
 
-                ( collidedUser, userCollidedModel ) = -- collide user with the bodies
-                    collideUser newUser model 
+                -- collide user with the bodies
+                (user2, bodies2) = User.collideWithBodies user1 model.bodies
 
 
-                (newBodies, cmd) = -- update the body collisions
-                    Bodies.collideBodies dt userCollidedModel.bodies
+                (bodies3, cmd) = -- update the body collisions
+                    Bodies.update (Bodies.Tick dt) bodies2
 
             in
-                ( ( {model| user = newUser, bodies = newBodies }, keyboard ), Cmd.map BodiesMsg cmd )
+                ( ( {model| user = user2, bodies = bodies3 }, keyboard ), Cmd.map BodiesMsg cmd )
 
         KeyPress keyMsg ->
             let
