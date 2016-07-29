@@ -36,14 +36,18 @@ init width =
 type Msg
     = Tick Time
 
-collideWith : Model Meta -> List (Body Meta) -> (Model Meta, List (Body Meta))
-collideWith model bodies
-    = (model, bodies)
+collideWith : Model Meta -> (Body Meta) -> (Body Meta)
+collideWith walls user =
+    List.foldl collideWithWall user walls
 
-
-collideWithWall : Body Meta -> List (Body Meta) -> (Body Meta, List (Body Meta))
-collideWithWall wall bodies
-    = (wall, bodies)
+{-| collideWithWall collides a body with a wall, and returns that body
+-}
+collideWithWall : Body Meta -> (Body Meta) -> Body Meta
+collideWithWall wall user =
+    let collisionResult =
+            Engine.collision wall user
+        (wall2, user2) = (Engine.resolveCollision collisionResult wall user)
+     in user2
 
 -- VIEW
 view : Model meta -> List Form
@@ -55,7 +59,7 @@ drawBody model =
         let
         veloLine =
             segment ( 0, 0 ) (mul2 model.velocity 5) |> traced (solid red)
-        in
+        ready =
             case model.shape of
                 Bubble radius ->
                     group
@@ -72,6 +76,8 @@ drawBody model =
                         group
                             [ rect (w * 2) (h * 2) |> filled model.color
                             ]
+        in
+            Collage.move model.pos ready
 
 
 

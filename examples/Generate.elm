@@ -56,7 +56,7 @@ type alias Model meta =
     { bodies: List (Body meta)
     , seed: Random.Seed
     , user: User.Model meta
-    , wall: Wall.Model meta
+    , walls: Wall.Model meta
     }
 
 type alias Meta =
@@ -71,7 +71,7 @@ initialModel =
     { bodies = someBodies
     ,  seed = Random.initialSeed 3
     ,  user = User.init
-    ,  wall = Wall.init width
+    ,  walls = Wall.init width
     }
 
 {- meta is used to tell if the body has been eaten -}
@@ -118,7 +118,6 @@ someBodies =
             Random.step randBoxes seed2
         in bubbles
         ++ boxes
-        ++ bounds ( width-10, width-10) 10 e0 ( 0, 0 ) wallMeta
         ++ bounds ( width+300, height+300) 10 e0 ( 0, 0 ) boundMeta
 
 user : Body Meta
@@ -130,7 +129,7 @@ user =
 scene : ( Model meta, Keyboard.Model ) -> Element
 scene ( model, keyboard ) =
     collage width height 
-        <| ( (User.view model.user) :: Bodies.view model.bodies )
+        <| ( (User.view model.user) :: (Bodies.view model.bodies) ++ (Wall.view model.walls) )
 
 
 
@@ -199,15 +198,15 @@ update msg ( model, keyboard ) =
                 -- collide user with the bodies
                 (user2, bodies2) = User.collideWithBodies user1 model.bodies
 
+                -- collide user with the wall
+                (user3) = Wall.collideWith model.walls user2
+
 
                 (bodies3, cmd) = -- update the body collisions
                     Bodies.update (Bodies.Tick dt) bodies2
 
-                (_, bodies4) =
-                    Wall.collideWith model.wall bodies3
-
             in
-                ( ( {model| user = user2, bodies = bodies4 }, keyboard ), Cmd.map BodiesMsg cmd )
+                ( ( {model| user = user3, bodies = bodies3 }, keyboard ), Cmd.map BodiesMsg cmd )
 
         KeyPress keyMsg ->
             let
