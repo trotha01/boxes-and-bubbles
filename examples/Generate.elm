@@ -108,7 +108,7 @@ randBody =
     Random.bool `Random.andThen` (\coin ->
                 if coin
                 then randBubble bColor e0 (-200,200) (-3,3) meta
-                else randBox boxColor e0 (-200,200) (5, 30) meta)
+                else randBox boxColor e0 (10,50) (10, 50) meta)
 
 someBodies : List (Body Meta)
 someBodies =
