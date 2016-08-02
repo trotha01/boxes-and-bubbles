@@ -166,7 +166,6 @@ counterforces t =
 type Msg
     = Tick Time
     | KeyPress Keyboard.Msg
-    | RegenerateBody (Body Meta)
     | BodiesMsg (Bodies.Msg)
 
 
@@ -185,7 +184,7 @@ regenerate : Random.Seed -> Body Meta -> (Body Meta, Random.Seed)
 regenerate seed body =
     let (newBody, seed') = (Random.step randBody seed)
     in ({ newBody |  pos = mul2 body.pos (-15/16), velocity = plus (0, 0.2) (mul2 body.velocity (1/2))}
-        , seed)
+        , seed')
 
 update : Msg -> ( Model Meta, Keyboard.Model ) -> ( ( Model Meta, Keyboard.Model ), Cmd Msg )
 update msg ( model, keyboard ) =
@@ -202,24 +201,33 @@ update msg ( model, keyboard ) =
                 (user3) = Wall.collideWith model.walls user2
 
 
-                (bodies3, cmd) = -- update the body collisions
+                (bodies3, msgs) = -- update the body collisions
                     Bodies.update (Bodies.Tick dt) bodies2
 
+                model2 =
+                    {model| user = user3, bodies = bodies3 }
+
+                ((model3, keyboard2), cmd2) =
+                    List.foldl
+                        (\msg ((m, k), cmd) -> (update (BodiesMsg msg) (m, k)))
+                        ((model2, keyboard), Cmd.none)
+                        msgs
+
             in
-                ( ( {model| user = user3, bodies = bodies3 }, keyboard ), Cmd.map BodiesMsg cmd )
+                ( ( model3, keyboard2 ), cmd2 )
 
         KeyPress keyMsg ->
             let
                 ((updatedUser, keyboard), keyboardCmd) = User.update (User.KeyPress keyMsg) (model.user, keyboard) 
             in
                 ( ( {model | user = updatedUser}, keyboard ), Cmd.map KeyPress keyboardCmd )
-        RegenerateBody body ->
-            let (newBody, newSeed) = regenerate model.seed body
-                newModel = {model|bodies = model.bodies ++ [newBody], seed = newSeed}
-                _ = Debug.log "regenerate" ""
-            in ((newModel, keyboard), Cmd.none)
-        BodiesMsg _ ->
-            ((model, keyboard), Cmd.none)
+        BodiesMsg msg ->
+            case msg of
+                Bodies.Regenerate body ->
+                    let (newBody, newSeed) = regenerate model.seed body
+                        newModel = {model|bodies = model.bodies ++ [newBody], seed = newSeed}
+                     in ((newModel, keyboard), Cmd.none)
+                _ -> ((model, keyboard), Cmd.none)
 
 
 {-| Run the animation started from the initial scene defined as `labeledBodies`.

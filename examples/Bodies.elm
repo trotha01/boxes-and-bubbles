@@ -64,11 +64,13 @@ someBodies =
 -- UPDATE
 type Msg
     = Tick Time
+    | Regenerate (Body Meta)
 
-update : Msg -> Model Meta -> (Model Meta, Cmd Msg)
+update : Msg -> Model Meta -> (Model Meta, List Msg)
 update msg model =
     case msg of
         Tick dt -> collideBodies dt model
+        _ -> (model, [])
 
 {-| regenerate is used when a body has reached the bounds
 it regenerates a new body at the opposite end
@@ -95,7 +97,7 @@ combineShapes a0 b0 =
             _ -> { a0 | shape = Box (15, 15) } -- we should never hit this case, only circles are food
      in {combined|meta={meta|isFood=False}}
 
-collideBodyWith : Float -> Body Meta -> List (Body Meta) -> (List (Body Meta), Cmd Msg) -> (List (Body Meta), Cmd Msg)
+collideBodyWith : Float -> Body Meta -> List (Body Meta) -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)
 collideBodyWith dt a0 bodies (acc, accCmd) =
     case bodies of
         [] ->
@@ -119,38 +121,31 @@ collideBodyWith dt a0 bodies (acc, accCmd) =
                     && (a0.meta.isBound == True || b0.meta.isBound == True)
                     then -- move object to opposite side
                         if a0.meta.isBound
-                        -- then collideBodyWith dt a0 bs ( acc, Cmd.batch [accCmd, Cmd.map (\_ -> RegenerateBody b0) Cmd.none]) -- TODO: find the right way to make a cmd
-                        -- else collideBodyWith dt b0 bs (acc, Cmd.batch [accCmd, Cmd.map (\_ -> RegenerateBody a0) Cmd.none])
-                        then 
-                            let (regenerated, _) = (regenerate (Random.initialSeed (round dt)) b0)
-                             in collideBodyWith dt a0 bs ((regenerated :: acc), accCmd)
-                        else
-                            let (regenerated, _) = (regenerate (Random.initialSeed (round dt)) a0)
-                             in collideBodyWith dt regenerated bs ((b0 :: acc), accCmd)
-
+                        then collideBodyWith dt a0 bs (acc,  (Regenerate b0) :: accCmd)
+                        else collideBodyWith dt b0 bs (acc, (Regenerate a0) :: accCmd)
                 else
                     let ( a1, b1 ) =
                         Engine.resolveCollision collisionResult a0 b0
                     in
                         collideBodyWith dt a1 bs ((b1 :: acc), accCmd)
 
-collideBodiesAcc  : Float -> (List (Body Meta), Cmd Msg) -> List (Body Meta) -> (List (Body Meta), Cmd Msg)
+collideBodiesAcc  : Float -> (List (Body Meta), List Msg) -> List (Body Meta) -> (List (Body Meta), List Msg)
 collideBodiesAcc dt (acc, accCmd) bodies =
     case bodies of
         [] ->
             (acc, accCmd)
 
         h :: t ->
-            case collideBodyWith dt h t ([], Cmd.none) of
+            case collideBodyWith dt h t ([], []) of
                 ([], cmd) ->
                     ([], cmd)
 
-                ((h1 :: t1), cmd) -> -- TODO: handle this command
-                    collideBodiesAcc dt ((h1 :: acc), accCmd) t1
+                ((h1 :: t1), cmd) -> 
+                    collideBodiesAcc dt ((h1 :: acc), cmd ++ accCmd) t1
 
-collideBodies : Float -> Model Meta -> (Model Meta, Cmd Msg)
+collideBodies : Float -> Model Meta -> (Model Meta, List Msg)
 collideBodies dt model =
-    let (collidedBodies, cmd) = collideBodiesAcc dt ([], Cmd.none) model
+    let (collidedBodies, cmd) = collideBodiesAcc dt ([], []) model
         newBodies = List.map (uncurry Engine.update (noGravity dt)) collidedBodies
     in  (newBodies, cmd)
 
