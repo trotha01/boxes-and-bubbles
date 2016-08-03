@@ -64,22 +64,10 @@ someBodies =
 -- UPDATE
 type Msg
     = Tick Time
-    | Regenerate (Body Meta)
 
-update : Msg -> Model Meta -> (Model Meta, List Msg)
-update msg model =
-    case msg of
-        Tick dt -> collideBodies dt model
-        _ -> (model, [])
-
-{-| regenerate is used when a body has reached the bounds
-it regenerates a new body at the opposite end
--}
-regenerate : Random.Seed -> Body Meta -> (Body Meta, Random.Seed)
-regenerate seed body =
-    let (newBody, seed') = (Random.step randBody seed)
-    in ({ newBody |  pos = mul2 body.pos (-15/16), velocity = plus (0, 0.2) (mul2 body.velocity (1/2))}
-        , seed)
+update : Msg -> Model Meta -> Model Meta
+update (Tick dt) model =
+    collideBodies dt model
 
 circArea : Float -> Float
 circArea r =
@@ -97,57 +85,47 @@ combineShapes a0 b0 =
             _ -> { a0 | shape = Box (15, 15) } -- we should never hit this case, only circles are food
      in {combined|meta={meta|isFood=False}}
 
-collideBodyWith : Float -> Body Meta -> List (Body Meta) -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)
-collideBodyWith dt a0 bodies (acc, accCmd) =
+collideBodyWith : Float -> Body Meta -> List (Body Meta) -> List (Body Meta) -> List (Body Meta)
+collideBodyWith dt a0 bodies acc =
     case bodies of
         [] ->
-            ((a0 :: acc), accCmd)
+            (a0 :: acc)
 
         b0 :: bs ->
             let
                 collisionResult =
                     Engine.collision a0 b0
-
                 in if collisionResult.penetration > 0
                         && a0.meta.isFood == True
                         && b0.meta.isFood == True
                 then -- combine the food. TODO: create a new object from the side when this happens
                     let combined = combineShapes a0 b0
-                     in collideBodyWith dt combined bs (acc, accCmd)
-                else if collisionResult.penetration > 0 -- let bodies through the wall
-                    && (a0.meta.isWall == True || b0.meta.isWall == True)
-                    then collideBodyWith dt a0 bs ((b0 :: acc), accCmd)
-                else if collisionResult.penetration > 0 -- recreate objects when they dissapear
-                    && (a0.meta.isBound == True || b0.meta.isBound == True)
-                    then -- move object to opposite side
-                        if a0.meta.isBound
-                        then collideBodyWith dt a0 bs (acc,  (Regenerate b0) :: accCmd)
-                        else collideBodyWith dt b0 bs (acc, (Regenerate a0) :: accCmd)
+                     in collideBodyWith dt combined bs acc
                 else
                     let ( a1, b1 ) =
                         Engine.resolveCollision collisionResult a0 b0
                     in
-                        collideBodyWith dt a1 bs ((b1 :: acc), accCmd)
+                        collideBodyWith dt a1 bs (b1 :: acc)
 
-collideBodiesAcc  : Float -> (List (Body Meta), List Msg) -> List (Body Meta) -> (List (Body Meta), List Msg)
-collideBodiesAcc dt (acc, accCmd) bodies =
+collideBodiesAcc  : Float -> List (Body Meta) -> List (Body Meta) -> List (Body Meta)
+collideBodiesAcc dt acc bodies =
     case bodies of
         [] ->
-            (acc, accCmd)
+            acc
 
         h :: t ->
-            case collideBodyWith dt h t ([], []) of
-                ([], cmd) ->
-                    ([], cmd)
+            case collideBodyWith dt h t [] of
+                [] ->
+                    []
 
-                ((h1 :: t1), cmd) -> 
-                    collideBodiesAcc dt ((h1 :: acc), cmd ++ accCmd) t1
+                (h1 :: t1) -> 
+                    collideBodiesAcc dt (h1 :: acc) t1
 
-collideBodies : Float -> Model Meta -> (Model Meta, List Msg)
+collideBodies : Float -> Model Meta -> Model Meta
 collideBodies dt model =
-    let (collidedBodies, cmd) = collideBodiesAcc dt ([], []) model
+    let collidedBodies = collideBodiesAcc dt [] model
         newBodies = List.map (uncurry Engine.update (noGravity dt)) collidedBodies
-    in  (newBodies, cmd)
+    in  newBodies
 
 -- VIEW
 view : Model meta -> List Form

@@ -1,4 +1,4 @@
-module Example exposing (main)
+module Transform exposing (main)
 
 {-| # Overview
 A basic example of using BoxesAndBubbles.
@@ -12,7 +12,7 @@ The scene is updated after each animation frame.
 -}
 
 import Html.App exposing (program)
-import BoxesAndBubbles.Bodies as Bodies exposing (..)
+import BoxesAndBubbles.Body as Body exposing (..)
 import BoxesAndBubbles.Engine as Engine
 import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Math2D exposing (mul2)
@@ -59,7 +59,7 @@ meta : Bool
 meta = False
 
 (height, width) =
-    (700, 800)
+    (600, 600)
 
 bColor : Color
 bColor = yellow
@@ -78,7 +78,7 @@ someBodies =
     , box boxColor ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) meta
     , box boxColor ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) meta
     ]
-        ++ bounds ( width, height) 100 e0 ( 0, 0 ) meta
+        ++ bounds ( width-50, height-50) 1 e0 ( 0, 0 ) meta
 
 user : Body Meta
 user =
@@ -283,7 +283,7 @@ update msg ( user, bodies, keyboard ) =
                     Keyboard.arrows kybrd
 
                 updatedUser =
-                    Bodies.move user direction
+                    Body.move user direction
             in
                 ( ( updatedUser, bodies, keyboard ), Cmd.map KeyPress keyboardCmd )
 

@@ -1,4 +1,4 @@
-module Example exposing (main)
+module Generate exposing (main)
 
 {-| # Overview
 A basic example of using BoxesAndBubbles.
@@ -26,6 +26,7 @@ import Random
 import User exposing (init)
 import Bodies
 import Wall
+import Bound
 
 {-
 TODO: make user larger when they eat food
@@ -33,23 +34,7 @@ use seed when randomly making shapes
 find out how to more evenly distribute the shapes
 -}
 
-inf : Float
-inf =
-    1 / 0
 
-
-
--- infinity, hell yeah
-
-e0 : Float
-e0 =
-    0.8
-
-
-
--- default restitution coefficient
--- box: (w,h) pos velocity density restitution
--- bubble: radius pos velocity density restitution
 
 -- MODEL
 type alias Model meta =
@@ -57,6 +42,7 @@ type alias Model meta =
     , seed: Random.Seed
     , user: User.Model meta
     , walls: Wall.Model meta
+    , bounds: Bound.Model meta
     }
 
 type alias Meta =
@@ -72,14 +58,12 @@ initialModel =
     ,  seed = Random.initialSeed 3
     ,  user = User.init
     ,  walls = Wall.init width
+    , bounds = Bound.init width height
     }
 
 {- meta is used to tell if the body has been eaten -}
 meta : Meta
 meta = Meta False False False (0,0)
-
-wallMeta: Meta
-wallMeta = Meta False True False (0,0)
 
 boundMeta: Meta
 boundMeta = Meta False False True (0,0)
@@ -118,6 +102,7 @@ someBodies =
             Random.step randBoxes seed2
         in bubbles
         ++ boxes
+        -- ++ bounds ( width-10, height-10) 10 e0 ( 0, 0 ) boundMeta
         ++ bounds ( width+300, height+300) 10 e0 ( 0, 0 ) boundMeta
 
 user : Body Meta
@@ -166,7 +151,7 @@ counterforces t =
 type Msg
     = Tick Time
     | KeyPress Keyboard.Msg
-    | BodiesMsg (Bodies.Msg)
+    | BoundMsg (Bound.Msg)
 
 
 subs : Sub Msg
@@ -191,7 +176,8 @@ update msg ( model, keyboard ) =
     case msg of
         Tick dt ->
             let
-                ((user1, _), _) = -- update user per keyboard presses
+                -- update user per keyboard presses
+                ((user1, _), _) =
                     User.update (User.Tick dt) (model.user, keyboard)
 
                 -- collide user with the bodies
@@ -200,18 +186,22 @@ update msg ( model, keyboard ) =
                 -- collide user with the wall
                 (user3) = Wall.collideWith model.walls user2
 
-
-                (bodies3, msgs) = -- update the body collisions
+                -- update the body collisions
+                bodies3 =
                     Bodies.update (Bodies.Tick dt) bodies2
 
+                -- collide bodies with the bounds
+                (bodies4, msgs') =
+                    Bound.collideWithBodies model.bounds bodies3
+
                 model2 =
-                    {model| user = user3, bodies = bodies3 }
+                    {model| user = user3, bodies = bodies4 }
 
                 ((model3, keyboard2), cmd2) =
                     List.foldl
-                        (\msg ((m, k), cmd) -> (update (BodiesMsg msg) (m, k)))
+                        (\msg ((m, k), cmd) -> (update (BoundMsg msg) (m, k)))
                         ((model2, keyboard), Cmd.none)
-                        msgs
+                        msgs'
 
             in
                 ( ( model3, keyboard2 ), cmd2 )
@@ -221,9 +211,9 @@ update msg ( model, keyboard ) =
                 ((updatedUser, keyboard), keyboardCmd) = User.update (User.KeyPress keyMsg) (model.user, keyboard) 
             in
                 ( ( {model | user = updatedUser}, keyboard ), Cmd.map KeyPress keyboardCmd )
-        BodiesMsg msg ->
+        BoundMsg msg ->
             case msg of
-                Bodies.Regenerate body ->
+                Bound.Regenerate body ->
                     let (newBody, newSeed) = regenerate model.seed body
                         newModel = {model|bodies = model.bodies ++ [newBody], seed = newSeed}
                      in ((newModel, keyboard), Cmd.none)
@@ -244,3 +234,16 @@ main =
             , subscriptions = always subs
             , view = scene >> Element.toHtml
             }
+
+-- Helpers
+
+inf : Float
+inf =
+    1 / 0
+
+{-| e0 default restitution coefficient
+-} 
+e0 : Float
+e0 =
+    0.8
+

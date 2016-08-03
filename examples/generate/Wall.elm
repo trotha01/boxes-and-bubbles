@@ -7,8 +7,6 @@ import BoxesAndBubbles.Math2D exposing (mul2,plus)
 import Color exposing (..)
 import Collage exposing (..)
 import Time exposing (Time)
-import Keyboard.Extra as Keyboard
-import Random
 
 -- MODEL
 type alias Model meta =
@@ -28,6 +26,7 @@ wallMeta = Meta False True False (0,0)
 
 init : Float -> Model Meta
 init width = 
+    -- bounds ( width-200, width-200) 10 e0 ( 0, 0 ) wallMeta
     bounds ( width-10, width-10) 10 e0 ( 0, 0 ) wallMeta
 
 

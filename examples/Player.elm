@@ -1,4 +1,4 @@
-module Eat exposing (main)
+module Player exposing (main)
 
 {-| # Overview
 A basic example of using BoxesAndBubbles.
@@ -26,6 +26,7 @@ import String
 import Time exposing (Time)
 import Keyboard.Extra as Keyboard
 
+
 inf =
     1 / 0
 
@@ -51,9 +52,6 @@ type alias Model meta =
 defaultLabel =
     ""
 
-{- meta is used to tell if the body has been eaten -}
-meta = False
-
 
 width =
     600
@@ -62,40 +60,77 @@ width =
 height =
     600
 
-bColor = yellow
 
 someBodies =
-    [ bubble bColor 20 1 e0 ( -80, 0 ) ( -1.5, 0 ) meta
-    , bubble bColor 15 1 e0 ( 0, 200 ) ( -0.4, 1.0 ) meta
-    , bubble bColor 5 1 e0 ( 200, -200 ) ( -1, -1 ) meta
-    , bubble bColor 15 5 0.4 ( 100, 100 ) ( 1, 1 ) meta
-    , bubble bColor 10 1 e0 ( 200, 200 ) ( 1, -1 ) meta
-    , box bColor ( 10, 10 ) 1 e0 ( 200, 0 ) ( 0, 0 ) meta
-    , box bColor ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) meta
-    , box bColor ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) meta
+    [ bubble black 20 1 e0 ( -80, 100 ) ( 1.5, 0 ) defaultLabel
+    -- , bubble 1 inf 0 ( 80, 0 ) ( 0, 0 ) defaultLabel
+    , bubble black 15 1 e0 ( 0, 200 ) ( 0.4, -3.0 ) defaultLabel
+    , bubble black 5 1 e0 ( 200, -280 ) ( -2, 1 ) defaultLabel
+    , bubble black 15 5 0.4 ( 100, 100 ) ( -4, -3 ) defaultLabel
+    , bubble black 10 1 e0 ( 200, 200 ) ( -5, -1 ) defaultLabel
+    , box black ( 10, 10 ) 1 e0 ( 300, 0 ) ( 0, 0 ) defaultLabel
+    , box black ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) defaultLabel
+    , box black ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) defaultLabel
     ]
-        ++ bounds ( width - 50, height - 50 ) 100 e0 ( 0, 0 ) meta
+        ++ bounds ( width - 50, height - 50 ) 100 e0 ( 0, 0 ) defaultLabel
 
 
 user =
-    bubble blue 100 1 e0 ( -80, 0 ) ( 0, 0 ) meta
+    bubble black 100 1 e0 ( -80, 0 ) ( 0, 0 ) defaultLabel
+
+
+
+-- we'll just compute the label from the data in the body
+
+
+bodyLabel restitution inverseMass =
+    [ "e = ", toString restitution, "\nm = ", toString (round (1 / inverseMass)) ] |> String.concat
+
+
+type alias Labeled =
+    { label : String }
+
+
+type alias LabeledBody =
+    Body Labeled
+
+
+
+--attachlabel label body =
+--  let labelRecord = { label = label }
+--  in { body }
+-- and attach it to all the bodies
+
+
+labeledBodies : Model String
+labeledBodies =
+    map (\b -> { b | meta = bodyLabel b.restitution b.inverseMass }) someBodies
+
+
 
 -- why yes, it draws a body with label. Or creates the Element, rather
 
 
-drawBody : Body meta -> Form
-drawBody { color, pos, velocity, inverseMass, restitution, shape, meta } =
+drawBody : Body String -> Form
+drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
     let
         veloLine =
             segment ( 0, 0 ) (mul2 velocity 5) |> traced (solid red)
 
+        info =
+            meta |> fromString |> centered |> toForm
 
         ready =
             case shape of
                 Bubble radius ->
                     group
                         [ circle radius
-                            |> filled color
+                            -- |> filled blue
+                            |>
+                                outlined (solid black)
+                        , info
+                            |> Collage.move ( 0, radius + 16 )
+                        , veloLine
                         ]
 
                 Box extents ->
@@ -105,12 +140,14 @@ drawBody { color, pos, velocity, inverseMass, restitution, shape, meta } =
                     in
                         group
                             [ rect (w * 2) (h * 2) |> outlined (solid black)
+                            , info |> Collage.move ( 0, h + 16 )
+                            , veloLine
                             ]
     in
         Collage.move pos ready
 
 
-scene : ( Body meta, Model meta, Keyboard.Model ) -> Element
+scene : ( Body String, Model String, Keyboard.Model ) -> Element
 scene ( user, bodies, keyboard ) =
     collage width height <| map drawBody (user :: bodies)
 
@@ -157,22 +194,15 @@ subs =
         , AnimationFrame.diffs Tick
         ]
 
-{-| collide assumes a0 is the user, b0 is possible food
--}
+
 collide : Body meta -> Body meta -> ( Body meta, Body meta )
 collide a0 b0 =
     let
         collisionResult =
             Engine.collision a0 b0
 
-        (a1, b1) = if collisionResult.penetration > 0
-            then case b0.shape of
-                (Bubble r) -> if collisionResult.penetration > r*2 || collisionResult.penetration < r
-                    then (a0, b0) -- swallow
-                    else (Engine.resolveCollision collisionResult a0 b0)
-                (Box _) -> Engine.resolveCollision collisionResult a0 b0
-            else
-                Engine.resolveCollision collisionResult a0 b0
+        ( a1, b1 ) =
+            Engine.resolveCollision collisionResult a0 b0
     in
         ( a1, b1 )
 
@@ -226,7 +256,7 @@ main =
             Keyboard.init
     in
         program
-            { init = ( ( user, someBodies, keyboard ), Cmd.map KeyPress keyboardCmd )
+            { init = ( ( user, labeledBodies, keyboard ), Cmd.map KeyPress keyboardCmd )
             , update = update
             , subscriptions = always subs
             , view = scene >> Element.toHtml

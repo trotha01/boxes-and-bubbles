@@ -12,7 +12,7 @@ The scene is updated after each animation frame.
 -}
 
 import Html.App exposing (program)
-import BoxesAndBubbles.Bodies as Bodies exposing (..)
+import BoxesAndBubbles.Body as Body exposing (..)
 import BoxesAndBubbles.Engine as Engine
 import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Math2D exposing (mul2)
@@ -25,6 +25,7 @@ import AnimationFrame
 import String
 import Time exposing (Time)
 import Keyboard.Extra as Keyboard
+import Color exposing (..)
 
 
 inf =
@@ -62,21 +63,21 @@ height =
 
 
 someBodies =
-    [ bubble 20 1 e0 ( -80, 0 ) ( 1.5, 0 ) defaultLabel
+    [ bubble black 20 1 e0 ( -80, 0 ) ( 1.5, 0 ) defaultLabel
     -- , bubble 1 inf 0 ( 80, 0 ) ( 0, 0 ) defaultLabel
-    , bubble 15 1 e0 ( 0, 200 ) ( 0.4, -3.0 ) defaultLabel
-    , bubble 5 1 e0 ( 200, -280 ) ( -2, 1 ) defaultLabel
-    , bubble 15 5 0.4 ( 100, 100 ) ( -4, -3 ) defaultLabel
-    , bubble 10 1 e0 ( 200, 200 ) ( -5, -1 ) defaultLabel
-    , box ( 10, 10 ) 1 e0 ( 300, 0 ) ( 0, 0 ) defaultLabel
-    , box ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) defaultLabel
-    , box ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) defaultLabel
+    , bubble black 15 1 e0 ( 0, 200 ) ( 0.4, -3.0 ) defaultLabel
+    , bubble black 5 1 e0 ( 200, -280 ) ( -2, 1 ) defaultLabel
+    , bubble black 15 5 0.4 ( 100, 100 ) ( -4, -3 ) defaultLabel
+    , bubble black 10 1 e0 ( 200, 200 ) ( -5, -1 ) defaultLabel
+    , box black ( 10, 10 ) 1 e0 ( 300, 0 ) ( 0, 0 ) defaultLabel
+    , box black ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) defaultLabel
+    , box black ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) defaultLabel
     ]
         ++ bounds ( width - 50, height - 50 ) 100 e0 ( 0, 0 ) defaultLabel
 
 
 user =
-    bubble 100 1 e0 ( -80, 0 ) ( 0, 0 ) defaultLabel
+    bubble black 100 1 e0 ( -80, 0 ) ( 0, 0 ) defaultLabel
 
 
 
@@ -147,9 +148,9 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
         Collage.move pos ready
 
 
-scene : ( Body String, Model String, Keyboard.Model ) -> Element
-scene ( user, bodies, keyboard ) =
-    collage width height <| map drawBody (user :: bodies)
+scene : ( Model String, Keyboard.Model ) -> Element
+scene ( bodies, keyboard ) =
+    collage width height <| map drawBody bodies
 
 
 
@@ -220,18 +221,11 @@ collideUser user bodies =
         ( user, [] )
         bodies
 
-update : Msg -> ( Body meta, Model meta, Keyboard.Model ) -> ( ( Body meta, Model meta, Keyboard.Model ), Cmd Msg )
-update msg ( user, bodies, keyboard ) =
+update : Msg -> ( Model meta, Keyboard.Model ) -> ( ( Model meta, Keyboard.Model ), Cmd Msg )
+update msg ( bodies, keyboard ) =
     case msg of
         Tick dt ->
-            let
-                ( collidedUser, collidedBodies ) =
-                    collideUser user bodies
-
-                newUser =
-                    (uncurry Engine.update (noGravity dt)) collidedUser
-            in
-                ( ( newUser, (uncurry step (noGravity dt) collidedBodies), keyboard ), Cmd.none )
+            ( ((uncurry step (constgravity dt) bodies), keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let
@@ -240,11 +234,8 @@ update msg ( user, bodies, keyboard ) =
 
                 direction =
                     Keyboard.arrows kybrd
-
-                updatedUser =
-                    Bodies.move user direction
             in
-                ( ( updatedUser, bodies, keyboard ), Cmd.map KeyPress keyboardCmd )
+                ( ( bodies, keyboard ), Cmd.map KeyPress keyboardCmd )
 
 
 {-| Run the animation started from the initial scene defined as `labeledBodies`.
@@ -256,7 +247,7 @@ main =
             Keyboard.init
     in
         program
-            { init = ( ( user, labeledBodies, keyboard ), Cmd.map KeyPress keyboardCmd )
+            { init = ( ( labeledBodies, keyboard ), Cmd.map KeyPress keyboardCmd )
             , update = update
             , subscriptions = always subs
             , view = scene >> Element.toHtml
