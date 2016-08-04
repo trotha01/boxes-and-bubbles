@@ -25,7 +25,6 @@ import AnimationFrame
 import String
 import Time exposing (Time)
 import Keyboard.Extra as Keyboard
-import Color exposing (..)
 
 
 inf =
@@ -64,7 +63,7 @@ height =
 
 someBodies =
     [ bubble black 20 1 e0 ( -80, 0 ) ( 1.5, 0 ) defaultLabel
-    -- , bubble 1 inf 0 ( 80, 0 ) ( 0, 0 ) defaultLabel
+    , bubble black 1 inf 0 ( 80, 0 ) ( 0, 0 ) defaultLabel
     , bubble black 15 1 e0 ( 0, 200 ) ( 0.4, -3.0 ) defaultLabel
     , bubble black 5 1 e0 ( 200, -280 ) ( -2, 1 ) defaultLabel
     , bubble black 15 5 0.4 ( 100, 100 ) ( -4, -3 ) defaultLabel
@@ -74,11 +73,6 @@ someBodies =
     , box black ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) defaultLabel
     ]
         ++ bounds ( width - 50, height - 50 ) 100 e0 ( 0, 0 ) defaultLabel
-
-
-user =
-    bubble black 100 1 e0 ( -80, 0 ) ( 0, 0 ) defaultLabel
-
 
 
 -- we'll just compute the label from the data in the body
@@ -194,32 +188,6 @@ subs =
         [ Sub.map KeyPress Keyboard.subscriptions
         , AnimationFrame.diffs Tick
         ]
-
-
-collide : Body meta -> Body meta -> ( Body meta, Body meta )
-collide a0 b0 =
-    let
-        collisionResult =
-            Engine.collision a0 b0
-
-        ( a1, b1 ) =
-            Engine.resolveCollision collisionResult a0 b0
-    in
-        ( a1, b1 )
-
-
-collideUser : Body meta -> Model meta -> ( Body meta, Model meta )
-collideUser user bodies =
-    List.foldl
-        (\b ( u, bs ) ->
-            let
-                ( u2, b2 ) =
-                    collide u b
-            in
-                ( u2, b2 :: bs )
-        )
-        ( user, [] )
-        bodies
 
 update : Msg -> ( Model meta, Keyboard.Model ) -> ( ( Model meta, Keyboard.Model ), Cmd Msg )
 update msg ( bodies, keyboard ) =
