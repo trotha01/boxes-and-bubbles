@@ -26,13 +26,12 @@ type alias Meta =
     , isWall : Bool
     , isBound : Bool
     , dir : BoxesAndBubbles.Math2D.Vec2
-    , ticks : Int
     }
 
 
 meta : Meta
 meta =
-    Meta False False False ( 0, 0 ) 0
+    Meta False False False ( 0, 0 )
 
 
 init : Model Meta
@@ -56,20 +55,8 @@ update msg ( model, keyboard ) =
             let
                 model2 =
                     (uncurry Engine.update (noGravity dt)) model
-
-                ticks =
-                    model.meta.ticks + 1
-
-                meta =
-                    model.meta
-
-                meta' =
-                    { meta | ticks = ticks }
-
-                model3 =
-                    { model2 | meta = meta' }
             in
-                ( ( model3, [], keyboard ), Cmd.none )
+                ( ( model2, [], keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let

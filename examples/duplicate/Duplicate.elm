@@ -178,7 +178,7 @@ update msg ( model, keyboard ) =
 
         KeyPress keyMsg ->
             let
-                ( ( updatedUser, keyboard ), keyboardCmd ) =
+                ( ( updatedUser, children, keyboard ), keyboardCmd ) =
                     User.update (User.KeyPress keyMsg) ( model.user, keyboard )
             in
                 ( ( { model | user = updatedUser }, keyboard ), Cmd.map KeyPress keyboardCmd )
