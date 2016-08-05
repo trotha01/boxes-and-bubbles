@@ -1,9 +1,7 @@
-module Generate exposing (main)
+module Duplicate exposing (main)
 
 {-| # Overview
-Pass objects through the wall,
-and regenerate them on the opposite side when they
-reach a bound
+Duplicate the user after a time period
 -}
 
 import Html.App exposing (program)
@@ -29,10 +27,11 @@ import Bound
 
 type alias Model meta =
     { bodies : List (Body meta)
-    , seed : Random.Seed
     , user : User.Model meta
+    , userChildren : List (Body meta)
     , walls : Wall.Model meta
     , bounds : Bound.Model meta
+    , seed : Random.Seed
     }
 
 
@@ -47,10 +46,11 @@ type alias Meta =
 initialModel : Model Meta
 initialModel =
     { bodies = someBodies
-    , seed = Random.initialSeed 3
     , user = User.init
+    , userChildren = []
     , walls = Wall.init width
     , bounds = Bound.init width height
+    , seed = Random.initialSeed 3
     }
 
 
@@ -146,8 +146,8 @@ update msg ( model, keyboard ) =
     case msg of
         Tick dt ->
             let
-                -- update user per keyboard presses
-                ( ( user1, _ ), _ ) =
+                -- update user
+                ( ( user1, children, _ ), _ ) =
                     User.update (User.Tick dt) ( model.user, keyboard )
 
                 -- collide user with the bodies
