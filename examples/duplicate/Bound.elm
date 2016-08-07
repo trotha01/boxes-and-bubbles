@@ -15,6 +15,7 @@ type alias Model meta =
 -- todo: simplify this meta type
 type alias Meta =
     { isFood: Bool
+    , eaten : Bool
     , isWall: Bool
     , isBound: Bool
     , dir: BoxesAndBubbles.Math2D.Vec2 
@@ -22,7 +23,7 @@ type alias Meta =
 
 -- TODO: simplify meta
 boundMeta: Meta
-boundMeta = Meta False False True (0,0)
+boundMeta = Meta False False False True (0,0)
 
 init : Float -> Float -> Model Meta
 init width height = 

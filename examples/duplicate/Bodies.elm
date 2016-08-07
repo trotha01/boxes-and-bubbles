@@ -16,13 +16,14 @@ type alias Model meta =
 -- todo: simplify this meta type
 type alias Meta =
     { isFood: Bool
+    , eaten : Bool
     , isWall: Bool
     , isBound: Bool
     , dir: BoxesAndBubbles.Math2D.Vec2 
     }
 
 meta : Meta
-meta = Meta False False False (0,0)
+meta = Meta False False False False (0,0)
 
 init : Model Meta
 init = 
@@ -96,8 +97,8 @@ collideBodyWith dt a0 bodies acc =
                 collisionResult =
                     Engine.collision a0 b0
                 in if collisionResult.penetration > 0
-                        && a0.meta.isFood == True
-                        && b0.meta.isFood == True
+                        && a0.meta.eaten == True
+                        && b0.meta.eaten == True
                 then -- combine the food. TODO: create a new object from the side when this happens
                     let combined = combineShapes a0 b0
                      in collideBodyWith dt combined bs acc

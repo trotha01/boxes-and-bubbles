@@ -36,6 +36,7 @@ type alias Model meta =
 
 type alias Meta a =
     { a | isFood : Bool
+    , eaten : Bool
     , isWall : Bool
     , isBound : Bool
     , dir : BoxesAndBubbles.Math2D.Vec2
@@ -45,6 +46,7 @@ type alias Meta a =
 -}
 type alias SpecificMeta =
     { isFood : Bool
+    , eaten : Bool
     , isWall : Bool
     , isBound : Bool
     , dir : BoxesAndBubbles.Math2D.Vec2
@@ -63,18 +65,18 @@ initialModel =
 -- meta : (Meta a)
 meta =
   { isFood= False
+  , eaten = False
   , isWall= False
   , isBound= False
   , dir = ( 0, 0 )
   }
 
-
--- boundMeta : (Meta a)
-boundMeta =
-  { isFood= False
+food =
+  { isFood= True
+  , eaten = False
   , isWall= False
-  , isBound= True
-  , dir =( 0, 0 )
+  , isBound= False
+  , dir = ( 0, 0 )
   }
 
 
@@ -102,12 +104,12 @@ randBoxes meta =
     Random.list boxCount (randBox boxColor e0 ( -200, 200 ) ( 10, 30 ) meta)
 
 
-randBody : a -> Random.Generator (Body a)
-randBody meta =
+randBody : Random.Generator (Body SpecificMeta)
+randBody =
     Random.bool
         `Random.andThen` (\coin ->
                             if coin then
-                                randBubble bColor e0 ( -200, 200 ) ( -3, 3 ) meta
+                                randBubble bColor e0 ( -200, 200 ) ( -3, 3 ) food
                             else
                                 randBox boxColor e0 ( 10, 50 ) ( 10, 50 ) meta
                          )
@@ -117,7 +119,7 @@ someBodies : SpecificMeta -> List (Body (Meta SpecificMeta))
 someBodies meta =
     let
         ( bubbles, seed2 ) =
-            Random.step (randBubbles meta) (Random.initialSeed 2)
+            Random.step (randBubbles food) (Random.initialSeed 2)
 
         ( boxes, seed3 ) =
             Random.step (randBoxes meta) seed2
@@ -164,7 +166,7 @@ update msg ( model, keyboard ) =
 
                 -- update the body collisions
                 bodies3 =
-                    Bodies.update (Bodies.Tick dt) bodies2
+                    Bodies.update (Bodies.Tick dt) (bodies2 ++ children)
 
                 -- collide bodies with the bounds
                 ( bodies4, msgs' ) =
@@ -182,7 +184,7 @@ update msg ( model, keyboard ) =
 
         KeyPress keyMsg ->
             let
-                ( ( updatedUser, children, keyboard ), keyboardCmd ) =
+                ( ( updatedUser, _, keyboard ), keyboardCmd ) =
                     User.update (User.KeyPress keyMsg) ( model.user, keyboard )
             in
                 ( ( { model | user = updatedUser }, keyboard ), Cmd.map KeyPress keyboardCmd )
@@ -278,11 +280,11 @@ counterforces t =
 {-| regenerate is used when a body has reached the bounds
 it regenerates a new body at the opposite end
 -}
-regenerate : Random.Seed -> a -> Body a -> ( Body a, Random.Seed )
+regenerate : Random.Seed -> SpecificMeta -> Body SpecificMeta -> ( Body SpecificMeta, Random.Seed )
 regenerate seed meta body =
     let
         ( newBody, seed' ) =
-            (Random.step (randBody meta) seed)
+            (Random.step (randBody) seed)
     in
         ( { newBody | pos = mul2 body.pos (-15 / 16), velocity = plus ( 0, 0.2 ) (mul2 body.velocity (1 / 2)) }
         , seed'

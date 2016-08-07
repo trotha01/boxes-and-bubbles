@@ -8,6 +8,7 @@ import Color exposing (..)
 import Collage exposing (..)
 import Time exposing (Time)
 import Keyboard.Extra as Keyboard
+import Bodies
 
 
 -- MODEL
@@ -49,15 +50,41 @@ type Msg
     | KeyPress Keyboard.Msg
 
 
-update : Msg -> ( Model Meta, Keyboard.Model ) -> ( ( Model Meta, List (Body meta), Keyboard.Model ), Cmd Keyboard.Msg )
+update : Msg -> ( Model Meta, Keyboard.Model ) -> ( ( Model Meta, List (Body Bodies.Meta), Keyboard.Model ), Cmd Keyboard.Msg )
 update msg ( model, keyboard ) =
     case msg of
         Tick dt ->
             let
                 model2 =
                     (uncurry Engine.update (noGravity dt)) model
+                meta =
+                  model2.meta
+                meta' =
+                  {meta|ticks = meta.ticks + 1 }
+                _ = Debug.log "ticks" (meta'.ticks % 200)
+                model3 =
+                    {model2|meta=meta'}
+                children =
+                  if (model3.meta.ticks % 200 == 0)
+                  then
+                    let _ = Debug.log "new child"
+                    in [{ pos = model3.pos
+                    , velocity = model3.velocity
+                    , inverseMass = model3.inverseMass
+                    , restitution = model3.restitution
+                    , shape = model3.shape
+                    , color = model3.color
+                    , meta =
+                      { isFood = False
+                      , eaten = False
+                      , isWall = False
+                      , isBound = False
+                      , dir = (0,0)
+                      }
+                    }]
+                  else []
             in
-                ( ( model2, [], keyboard ), Cmd.none )
+                ( ( model3, children, keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let
@@ -74,7 +101,7 @@ update msg ( model, keyboard ) =
 
 
 type alias Food a =
-    { a | isFood : Bool }
+    { a | isFood : Bool, eaten : Bool }
 
 
 {-| swallow: turn a body into food
@@ -86,7 +113,7 @@ swallow food =
             food.meta
 
         meta' =
-            { meta | isFood = True }
+            { meta | eaten = True }
     in
         { food | meta = meta' }
 
@@ -100,7 +127,7 @@ collideWithBody user body =
             Engine.collision user body
 
         ( user1, body1 ) =
-            if collisionResult.penetration > 0 then
+            if collisionResult.penetration > 0 && body.meta.isFood then
                 case body.shape of
                     -- if the penetration is greater than 2r, then the food is moving around inside
                     -- if the penetration is less than r, then the food is still being swallowed
