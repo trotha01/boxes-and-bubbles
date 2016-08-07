@@ -113,8 +113,6 @@ randBody meta =
                          )
 
 
-{-| TODO: remove ++ bounds, since they should be separate from the bodies in the model
--}
 someBodies : SpecificMeta -> List (Body (Meta SpecificMeta))
 someBodies meta =
     let
@@ -124,19 +122,7 @@ someBodies meta =
         ( boxes, seed3 ) =
             Random.step (randBoxes meta) seed2
     in
-        bubbles
-            ++
-                boxes
-            -- ++ bounds ( width-10, height-10) 10 e0 ( 0, 0 ) boundMeta
-            ++
-                bounds ( width + 300, height + 300 ) 10 e0 ( 0, 0 ) boundMeta
-
-
-{-| TODO: is this even used?
--}
-user : a -> Body a
-user meta =
-    bubble purple 100 1 e0 ( -80, 0 ) ( 1, 0 ) meta
+        (bubbles ++ boxes)
 
 
 
