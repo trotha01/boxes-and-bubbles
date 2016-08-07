@@ -32,14 +32,14 @@ init width height =
 
 
 -- UPDATE
-type Msg
+type Msg meta
     = Tick Time
-    | Regenerate (Body Meta)
+    | Regenerate (Body meta)
 
 
 {-| collideWithBodies: collide bounds with list of body
 -}
-collideWithBodies : Model Meta -> List (Body Meta) -> (List (Body Meta), List Msg)
+collideWithBodies : Model meta -> List (Body meta) -> (List (Body meta), List (Msg meta))
 collideWithBodies bounds bodies =
     List.foldl
         (\body (bodyAcc, msgsAcc) ->
@@ -50,7 +50,7 @@ collideWithBodies bounds bodies =
 
 {-| We return a List Msg and List Body, to make accumulating them easier
 -}
-collideBoundsWithBodies : Model Meta -> List (Body Meta) -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)
+collideBoundsWithBodies : Model meta -> List (Body meta) -> (List (Body meta), List (Msg meta)) -> (List (Body meta), List (Msg meta))
 collideBoundsWithBodies bounds bodies (bodyAcc, msgAcc) =
     case (bounds, bodies) of
         ([], _) -> (bodyAcc, msgAcc)
@@ -74,7 +74,7 @@ collideBoundWithBodies bound bodies (bodyAcc, msgAcc) =
                 then collideBoundWithBodies bound bs (bodyAcc, (Regenerate body) :: msgAcc)
                 else collideBoundWithBodies bound (body :: bs) (bodyAcc, msgAcc)  -- this will have no base case
 
-collideBoundsWithBody : List (Body Meta) -> Maybe (Body Meta) -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)
+collideBoundsWithBody : List (Body meta) -> Maybe (Body meta) -> (List (Body meta), List (Msg meta)) -> (List (Body meta), List (Msg meta))
 collideBoundsWithBody bounds maybeBody (bodyAcc, msgAcc) =
     case (bounds, maybeBody) of
         ([], Just body) -> (body :: bodyAcc, msgAcc)
