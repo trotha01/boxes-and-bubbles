@@ -61,10 +61,6 @@ collideBoundsWithBodies bounds bodies (bodyAcc, msgAcc) =
                 then (bodyAcc, (Regenerate body) :: msgAcc)
                 else collideBoundsWithBodies bnds bds (bodyAcc, msgAcc)     
 
-
--- should we collide
---    bound  & bodies
--- or bounds & body  ?
 collideBoundWithBodies bound bodies (bodyAcc, msgAcc) =
     case bodies of
         [] -> []

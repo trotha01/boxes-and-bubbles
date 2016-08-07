@@ -69,7 +69,7 @@ update msg ( model, keyboard ) =
                   then
                     let _ = Debug.log "new child"
                     in [{ pos = model3.pos
-                    , velocity = model3.velocity
+                    , velocity = mul2 model3.velocity 5
                     , inverseMass = model3.inverseMass
                     , restitution = model3.restitution
                     , shape = model3.shape

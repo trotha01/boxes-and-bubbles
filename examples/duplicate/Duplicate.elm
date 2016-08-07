@@ -28,6 +28,7 @@ import Bound
 type alias Model meta =
     { bodies : List (Body meta)
     , user : User.Model User.Meta
+    , children : List (Body meta)
     , walls : Wall.Model Wall.Meta
     , bounds : Bound.Model Bound.Meta
     , seed : Random.Seed
@@ -56,6 +57,7 @@ initialModel : Model SpecificMeta
 initialModel =
     { bodies = (someBodies meta)
     , user = User.init
+    , children = []
     , walls = Wall.init width
     , bounds = Bound.init width height
     , seed = Random.initialSeed 3
@@ -134,7 +136,7 @@ someBodies meta =
 scene : ( Model meta, Keyboard.Model ) -> Element
 scene ( model, keyboard ) =
     collage width height
-        <| ((User.view model.user) :: (Bodies.view model.bodies) ++ (Wall.view model.walls))
+        <| ((User.view model.user) :: (Bodies.view model.bodies ++ Bodies.view model.children) ++ (Wall.view model.walls))
 
 
 
@@ -144,7 +146,7 @@ scene ( model, keyboard ) =
 type Msg
     = Tick Time
     | KeyPress Keyboard.Msg
-    | BoundMsg (Bound.Msg)
+    | BoundMsg (Bound.Msg SpecificMeta)
 
 
 update : Msg -> ( Model (Meta SpecificMeta), Keyboard.Model ) -> ( ( Model (Meta SpecificMeta), Keyboard.Model ), Cmd Msg )
@@ -166,14 +168,14 @@ update msg ( model, keyboard ) =
 
                 -- update the body collisions
                 bodies3 =
-                    Bodies.update (Bodies.Tick dt) (bodies2 ++ children)
+                    Bodies.update (Bodies.Tick dt) (bodies2)
 
                 -- collide bodies with the bounds
                 ( bodies4, msgs' ) =
                     Bound.collideWithBodies model.bounds bodies3
 
                 model2 =
-                    { model | user = user3, bodies = bodies4 }
+                    { model | user = user3, bodies = bodies4, children = children }
 
                 ( ( model3, keyboard2 ), cmd2 ) =
                     List.foldl (\msg ( ( m, k ), cmd ) -> (update (BoundMsg msg) ( m, k )))
