@@ -47,19 +47,6 @@ collideWithBodies bounds bodies =
         ([], [])
         bodies
 
-{- We return a List Msg and List Body, to make accumulating them easier
--}
--- collideBoundsWithBody : Model Meta -> Body Meta -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)
--- collideBoundsWithBody bounds body (bodyAcc, msgAcc) =
---     case bounds of
---         [] -> (bodyAcc, msgAcc)
---         bound :: bs ->
---             let collisionResult = Engine.collision bound body
---             in if collisionResult.penetration > 0
---                 then (bodyAcc, [Regenerate body])
---                 else collideBoundsWithBody bs body (bodyAcc, msgAcc)
-
-
 {-| We return a List Msg and List Body, to make accumulating them easier
 -}
 collideBoundsWithBodies : Model Meta -> List (Body Meta) -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)

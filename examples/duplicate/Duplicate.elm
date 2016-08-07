@@ -27,41 +27,55 @@ import Bound
 
 type alias Model meta =
     { bodies : List (Body meta)
-    , user : User.Model meta
-    , userChildren : List (Body meta)
-    , walls : Wall.Model meta
-    , bounds : Bound.Model meta
+    , user : User.Model User.Meta
+    , walls : Wall.Model Wall.Meta
+    , bounds : Bound.Model Bound.Meta
     , seed : Random.Seed
     }
 
 
-type alias Meta =
+type alias Meta a =
+    { a | isFood : Bool
+    , isWall : Bool
+    , isBound : Bool
+    , dir : BoxesAndBubbles.Math2D.Vec2
+    }
+
+{-| TODO: get rid of this
+-}
+type alias SpecificMeta =
     { isFood : Bool
     , isWall : Bool
     , isBound : Bool
     , dir : BoxesAndBubbles.Math2D.Vec2
     }
 
-
-initialModel : Model Meta
+initialModel : Model SpecificMeta
 initialModel =
-    { bodies = someBodies
+    { bodies = (someBodies meta)
     , user = User.init
-    , userChildren = []
     , walls = Wall.init width
     , bounds = Bound.init width height
     , seed = Random.initialSeed 3
     }
 
 
-meta : Meta
+-- meta : (Meta a)
 meta =
-    Meta False False False ( 0, 0 )
+  { isFood= False
+  , isWall= False
+  , isBound= False
+  , dir = ( 0, 0 )
+  }
 
 
-boundMeta : Meta
+-- boundMeta : (Meta a)
 boundMeta =
-    Meta False False True ( 0, 0 )
+  { isFood= False
+  , isWall= False
+  , isBound= True
+  , dir =( 0, 0 )
+  }
 
 
 ( height, width ) =
@@ -78,18 +92,18 @@ boxColor =
 
 ( bubbleCount, boxCount ) =
     ( 20, 10 )
-randBubbles : Random.Generator (List (Body Meta))
-randBubbles =
+randBubbles : a -> Random.Generator (List (Body a))
+randBubbles meta =
     Random.list bubbleCount (randBubble bColor e0 ( -200, 200 ) ( -3, 3 ) meta)
 
 
-randBoxes : Random.Generator (List (Body Meta))
-randBoxes =
+randBoxes : a -> Random.Generator (List (Body a))
+randBoxes meta =
     Random.list boxCount (randBox boxColor e0 ( -200, 200 ) ( 10, 30 ) meta)
 
 
-randBody : Random.Generator (Body Meta)
-randBody =
+randBody : a -> Random.Generator (Body a)
+randBody meta =
     Random.bool
         `Random.andThen` (\coin ->
                             if coin then
@@ -99,14 +113,16 @@ randBody =
                          )
 
 
-someBodies : List (Body Meta)
-someBodies =
+{-| TODO: remove ++ bounds, since they should be separate from the bodies in the model
+-}
+someBodies : SpecificMeta -> List (Body (Meta SpecificMeta))
+someBodies meta =
     let
         ( bubbles, seed2 ) =
-            Random.step randBubbles (Random.initialSeed 2)
+            Random.step (randBubbles meta) (Random.initialSeed 2)
 
         ( boxes, seed3 ) =
-            Random.step randBoxes seed2
+            Random.step (randBoxes meta) seed2
     in
         bubbles
             ++
@@ -116,8 +132,10 @@ someBodies =
                 bounds ( width + 300, height + 300 ) 10 e0 ( 0, 0 ) boundMeta
 
 
-user : Body Meta
-user =
+{-| TODO: is this even used?
+-}
+user : a -> Body a
+user meta =
     bubble purple 100 1 e0 ( -80, 0 ) ( 1, 0 ) meta
 
 
@@ -141,7 +159,7 @@ type Msg
     | BoundMsg (Bound.Msg)
 
 
-update : Msg -> ( Model Meta, Keyboard.Model ) -> ( ( Model Meta, Keyboard.Model ), Cmd Msg )
+update : Msg -> ( Model (Meta SpecificMeta), Keyboard.Model ) -> ( ( Model (Meta SpecificMeta), Keyboard.Model ), Cmd Msg )
 update msg ( model, keyboard ) =
     case msg of
         Tick dt ->
@@ -188,7 +206,7 @@ update msg ( model, keyboard ) =
                 Bound.Regenerate body ->
                     let
                         ( newBody, newSeed ) =
-                            regenerate model.seed body
+                            regenerate model.seed meta body
 
                         newModel =
                             { model | bodies = model.bodies ++ [ newBody ], seed = newSeed }
@@ -274,11 +292,11 @@ counterforces t =
 {-| regenerate is used when a body has reached the bounds
 it regenerates a new body at the opposite end
 -}
-regenerate : Random.Seed -> Body Meta -> ( Body Meta, Random.Seed )
-regenerate seed body =
+regenerate : Random.Seed -> a -> Body a -> ( Body a, Random.Seed )
+regenerate seed meta body =
     let
         ( newBody, seed' ) =
-            (Random.step randBody seed)
+            (Random.step (randBody meta) seed)
     in
         ( { newBody | pos = mul2 body.pos (-15 / 16), velocity = plus ( 0, 0.2 ) (mul2 body.velocity (1 / 2)) }
         , seed'

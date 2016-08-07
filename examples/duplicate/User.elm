@@ -26,12 +26,13 @@ type alias Meta =
     , isWall : Bool
     , isBound : Bool
     , dir : BoxesAndBubbles.Math2D.Vec2
+    , ticks : Int
     }
 
 
 meta : Meta
 meta =
-    Meta False False False ( 0, 0 )
+    Meta False False False ( 0, 0 ) 0
 
 
 init : Model Meta
@@ -72,16 +73,27 @@ update msg ( model, keyboard ) =
                 ( ( updatedUser, [], keyboard ), keyboardCmd )
 
 
-{-| swallow: swallow another body
+type alias Food a =
+    { a | isFood : Bool }
+
+
+{-| swallow: turn a body into food
 -}
-swallow : Body Meta -> Body Meta -> ( Body Meta, Body Meta )
-swallow user food =
-    ( user, { food | meta = { meta | isFood = True } } )
+swallow : Body (Food a) -> Body (Food a)
+swallow food =
+    let
+        meta =
+            food.meta
+
+        meta' =
+            { meta | isFood = True }
+    in
+        { food | meta = meta' }
 
 
 {-| collideWithBody: collide user with another body
 -}
-collideWithBody : Model Meta -> Body Meta -> ( Model Meta, Body Meta )
+collideWithBody : Model meta -> Body (Food a) -> ( Model meta, Body (Food a) )
 collideWithBody user body =
     let
         collisionResult =
@@ -101,12 +113,12 @@ collideWithBody user body =
                                 ( user1, body1 ) =
                                     (Engine.resolveCollision cr user body)
                             in
-                                swallow user1 body1
+                                ( user1, swallow body1 )
                         else if
                             collisionResult.penetration > (r * 2)
                             -- || collisionResult.penetration < r
                         then
-                            swallow user body
+                            ( user, swallow body )
                         else
                             (Engine.resolveCollision collisionResult user body)
 
@@ -120,7 +132,7 @@ collideWithBody user body =
 
 {-| collideWithBodies: collide user with list of body
 -}
-collideWithBodies : Model Meta -> List (Body Meta) -> ( Model Meta, List (Body Meta) )
+collideWithBodies : Model meta -> List (Body (Food a)) -> ( Model meta, List (Body (Food a)) )
 collideWithBodies user0 bodies0 =
     let
         ( user1, bodies1 ) =

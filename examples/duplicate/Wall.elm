@@ -35,13 +35,13 @@ init width =
 type Msg
     = Tick Time
 
-collideWith : Model Meta -> (Body Meta) -> (Body Meta)
+collideWith : Model meta1 -> (Body meta2) -> (Body meta2)
 collideWith walls user =
     List.foldl collideWithWall user walls
 
 {-| collideWithWall collides a body with a wall, and returns that body
 -}
-collideWithWall : Body Meta -> (Body Meta) -> Body Meta
+collideWithWall : Body meta1 -> (Body meta2) -> Body meta2
 collideWithWall wall user =
     let collisionResult =
             Engine.collision wall user
