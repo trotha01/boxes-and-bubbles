@@ -158,6 +158,7 @@ type Msg
     | Points Int
     | KeyPress Keyboard.Msg
     | BoundMsg (Bound.Msg SpecificMeta)
+    | Regenerate (Body SpecificMeta)
 
 
 update : Msg -> ( Model (Meta SpecificMeta), Keyboard.Model ) -> ( ( Model (Meta SpecificMeta), Keyboard.Model ), Cmd Msg )
@@ -229,18 +230,19 @@ update msg ( model, keyboard ) =
             in
                 ( ( { model | user = updatedUser }, keyboard ), Cmd.map KeyPress keyboardCmd )
 
+        Regenerate body ->
+            let
+                ( newBody, newSeed ) =
+                    regenerate model.seed meta body
+
+                newModel =
+                    { model | bodies = model.bodies ++ [ newBody ], seed = newSeed }
+            in
+                ( ( newModel, keyboard ), Cmd.none )
         BoundMsg msg ->
             case msg of
                 Bound.Regenerate body ->
-                    let
-                        ( newBody, newSeed ) =
-                            regenerate model.seed meta body
-
-                        newModel =
-                            { model | bodies = model.bodies ++ [ newBody ], seed = newSeed }
-                    in
-                        ( ( newModel, keyboard ), Cmd.none )
-
+                  update (Regenerate body) (model, keyboard)
                 _ ->
                     ( ( model, keyboard ), Cmd.none )
 

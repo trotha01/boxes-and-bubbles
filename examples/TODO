@@ -1,7 +1,8 @@
 TODO:
 - Make user larger when they eat food
 - Find out how to more evenly distribute the shapes on start
-- Duplicate the user
 - Simplify "meta"
 - make the children dissapear when they reach the bound
 - make some children re-appear
+- make keyboard part of the model
+- regenerate new piece when two are combined
