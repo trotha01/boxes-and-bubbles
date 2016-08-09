@@ -15,6 +15,7 @@ import Color exposing (..)
 import AnimationFrame
 import Time exposing (Time)
 import Keyboard.Extra as Keyboard
+import Text
 import Random
 import User exposing (init)
 import Bodies
@@ -32,6 +33,7 @@ type alias Model meta =
     , walls : Wall.Model Wall.Meta
     , bounds : Bound.Model Bound.Meta
     , seed : Random.Seed
+    , points : Int
     }
 
 
@@ -61,6 +63,7 @@ initialModel =
     , walls = Wall.init width
     , bounds = Bound.init width height
     , seed = Random.initialSeed 3
+    , points = 0
     }
 
 
@@ -84,6 +87,8 @@ food =
 
 ( height, width ) =
     ( 700, 700 )
+( halfHeight, halfWidth ) =
+    ( height/2, width/2)
 bColor : Color
 bColor =
     rgb 238 130 238
@@ -136,8 +141,13 @@ someBodies meta =
 scene : ( Model meta, Keyboard.Model ) -> Element
 scene ( model, keyboard ) =
     collage width height
-        <| ((User.view model.user) :: (Bodies.view model.bodies ++ Bodies.view model.children) ++ (Wall.view model.walls))
+        <| ((User.view model.user) :: (Bodies.view model.bodies ++ Bodies.view model.children)
+           ++ (Wall.view model.walls))
+           ++ points model
 
+points : Model meta -> List Form
+points model =
+      [(text (Text.fromString (toString model.points))) |> Collage.move (halfWidth-50, halfHeight-50) ]
 
 
 -- UPDATE
@@ -145,6 +155,7 @@ scene ( model, keyboard ) =
 
 type Msg
     = Tick Time
+    | Points Int
     | KeyPress Keyboard.Msg
     | BoundMsg (Bound.Msg SpecificMeta)
 
@@ -152,6 +163,14 @@ type Msg
 update : Msg -> ( Model (Meta SpecificMeta), Keyboard.Model ) -> ( ( Model (Meta SpecificMeta), Keyboard.Model ), Cmd Msg )
 update msg ( model, keyboard ) =
     case msg of
+        Points p ->
+            let ((_, children, _), _) = User.update User.MakeChild (model.user, keyboard)
+                model2 = {model|points = model.points + p}
+                model3 =
+                  if model2.points /= 0 && model2.points % 100 == 0
+                  then {model2 | children = model2.children ++ children}
+                  else model2
+            in ((model3, keyboard), Cmd.none)
         Tick dt ->
             let
                 -- update user
@@ -162,27 +181,46 @@ update msg ( model, keyboard ) =
                 ( user2, bodies2 ) =
                     User.collideWithBodies user1 model.bodies
 
+                -- collide user with the children
+                -- ( user3, children2) =
+                --     User.collideWithBodies user1 (model.children ++ children)
+
                 -- collide user with the wall
-                user3 =
+                user4 =
                     Wall.collideWith model.walls user2
 
                 -- update the body collisions
-                bodies3 =
+                (bodies3, pointMsgs) =
                     Bodies.update (Bodies.Tick dt) (bodies2)
+
+                -- update the children collisions
+                (children3, _) =
+                    Bodies.update (Bodies.Tick dt) (model.children ++ children)
 
                 -- collide bodies with the bounds
                 ( bodies4, msgs' ) =
                     Bound.collideWithBodies model.bounds bodies3
 
                 model2 =
-                    { model | user = user3, bodies = bodies4, children = children }
+                    { model | user = user4, bodies = bodies4, children = children3 }
 
+                -- hack, since I don't know how to generate a Cmd
                 ( ( model3, keyboard2 ), cmd2 ) =
                     List.foldl (\msg ( ( m, k ), cmd ) -> (update (BoundMsg msg) ( m, k )))
                         ( ( model2, keyboard ), Cmd.none )
                         msgs'
+
+                -- hack2, since I don't know how to generate a Cmd
+                ( ( model4, keyboard3 ), cmd3 ) =
+                    List.foldl
+                        (\msg ( ( m, k ), cmd ) ->
+                          case msg of
+                              (Bodies.Points p) -> (update (Points p) (m, k))
+                              _ -> ((m, k), cmd))
+                        ( ( model3, keyboard2 ), Cmd.none )
+                        pointMsgs
             in
-                ( ( model3, keyboard2 ), cmd2 )
+                ( ( model4, keyboard3 ), cmd3 )
 
         KeyPress keyMsg ->
             let

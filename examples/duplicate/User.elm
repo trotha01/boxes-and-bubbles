@@ -27,13 +27,12 @@ type alias Meta =
     , isWall : Bool
     , isBound : Bool
     , dir : BoxesAndBubbles.Math2D.Vec2
-    , ticks : Int
     }
 
 
 meta : Meta
 meta =
-    Meta False False False ( 0, 0 ) 0
+    Meta False False False ( 0, 0 )
 
 
 init : Model Meta
@@ -48,32 +47,21 @@ init =
 type Msg
     = Tick Time
     | KeyPress Keyboard.Msg
+    | MakeChild
 
 
 update : Msg -> ( Model Meta, Keyboard.Model ) -> ( ( Model Meta, List (Body Bodies.Meta), Keyboard.Model ), Cmd Keyboard.Msg )
 update msg ( model, keyboard ) =
     case msg of
-        Tick dt ->
-            let
-                model2 =
-                    (uncurry Engine.update (noGravity dt)) model
-                meta =
-                  model2.meta
-                meta' =
-                  {meta|ticks = meta.ticks + 1 }
-                _ = Debug.log "ticks" (meta'.ticks % 200)
-                model3 =
-                    {model2|meta=meta'}
-                children =
-                  if (model3.meta.ticks % 200 == 0)
-                  then
-                    let _ = Debug.log "new child"
-                    in [{ pos = model3.pos
-                    , velocity = mul2 model3.velocity 5
-                    , inverseMass = model3.inverseMass
-                    , restitution = model3.restitution
-                    , shape = model3.shape
-                    , color = model3.color
+        MakeChild ->
+          let
+             children =
+                    [{ pos = model.pos
+                    , velocity = model.velocity
+                    , inverseMass = model.inverseMass
+                    , restitution = model.restitution
+                    , shape = model.shape
+                    , color = model.color
                     , meta =
                       { isFood = False
                       , eaten = False
@@ -82,9 +70,13 @@ update msg ( model, keyboard ) =
                       , dir = (0,0)
                       }
                     }]
-                  else []
+          in ( ( model, children, keyboard ), Cmd.none )
+        Tick dt ->
+            let
+                model2 =
+                    (uncurry Engine.update (noGravity dt)) model
             in
-                ( ( model3, children, keyboard ), Cmd.none )
+                ( ( model2, [], keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let

@@ -3,4 +3,5 @@ TODO:
 - Find out how to more evenly distribute the shapes on start
 - Duplicate the user
 - Simplify "meta"
-- view the children after they are made
+- make the children dissapear when they reach the bound
+- make some children re-appear
