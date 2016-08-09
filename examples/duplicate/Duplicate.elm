@@ -198,12 +198,16 @@ update msg ( model, keyboard ) =
                 (children3, _) =
                     Bodies.update (Bodies.Tick dt) (model.children ++ children)
 
+                -- collide children with the bounds
+                ( children4, _ ) =
+                    Bound.collideWithBodies model.bounds children3
+
                 -- collide bodies with the bounds
                 ( bodies4, msgs' ) =
                     Bound.collideWithBodies model.bounds bodies3
 
                 model2 =
-                    { model | user = user4, bodies = bodies4, children = children3 }
+                    { model | user = user4, bodies = bodies4, children = children4 }
 
                 -- hack, since I don't know how to generate a Cmd
                 ( ( model3, keyboard2 ), cmd2 ) =

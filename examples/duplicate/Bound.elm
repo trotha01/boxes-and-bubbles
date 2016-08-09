@@ -27,7 +27,8 @@ boundMeta = Meta False False False True (0,0)
 
 init : Float -> Float -> Model Meta
 init width height = 
-    bounds ( width+300, height+300) 10 e0 ( 0, 0 ) boundMeta
+    bounds ( width+400, height+400) 10 e0 ( 0, 0 ) boundMeta
+    -- bounds ( width-20, height-20) 10 e0 ( 0, 0 ) boundMeta
 
 
 

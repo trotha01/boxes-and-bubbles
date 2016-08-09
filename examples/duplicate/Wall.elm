@@ -26,8 +26,8 @@ wallMeta = Meta False True False (0,0)
 
 init : Float -> Model Meta
 init width = 
-    -- bounds ( width-200, width-200) 10 e0 ( 0, 0 ) wallMeta
     bounds ( width-10, width-10) 10 e0 ( 0, 0 ) wallMeta
+    -- bounds ( width-100, width-100) 10 e0 ( 0, 0 ) wallMeta
 
 
 

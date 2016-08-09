@@ -115,7 +115,7 @@ swallow food =
 collideWithBody : Model meta -> Body (Food a) -> ( Model meta, Body (Food a) )
 collideWithBody user body =
     let
-        collisionResult =
+        collisionResult = -- TODO: only collide if we have to
             Engine.collision user body
 
         ( user1, body1 ) =
