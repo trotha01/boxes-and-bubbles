@@ -21,3 +21,11 @@ It doesn't do:
 * time-integrated movement
 * graphics
 * colliding unstoppable forces with immovable objects (infinite masses will be glitchy)
+
+
+Further Examples:
+- [basic example](http://trotha01.github.io/boexes-and-bubbles/examples/example/)
+- [player](http://trotha01.github.io/boexes-and-bubbles/examples/player/)
+- [eat](http://trotha01.github.io/boexes-and-bubbles/examples/eat/)
+- [transform](http://trotha01.github.io/boexes-and-bubbles/examples/transform/)
+- [duplicate](http://trotha01.github.io/boexes-and-bubbles/examples/duplicate/)
