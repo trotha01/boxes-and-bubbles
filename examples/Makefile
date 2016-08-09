@@ -1,15 +1,15 @@
 MAKE=elm-make
 
-all: example player eat transform duplicate
-.PHONY: all example player eat transform duplicate
+all: example/index.html player/index.html eat/index.html transform/index.html duplicate/index.html
+.PHONY: all
 
-example:
+example/index.html: example/Example.elm
 	$(MAKE) example/Example.elm --output example/index.html
-player: player/Player.elm
+player/index.html: player/Player.elm
 	$(MAKE) player/Player.elm --output player/index.html
-eat: eat/Eat.elm
+eat/index.html: eat/Eat.elm
 	$(MAKE) eat/Eat.elm --output eat/index.html
-transform: transform/Transform.elm
+transform/index.html: transform/Transform.elm
 	$(MAKE) transform/Transform.elm --output transform/index.html
-duplicate: duplicate/Duplicate.elm
+duplicate/index.html: duplicate/Duplicate.elm
 	$(MAKE) duplicate/Duplicate.elm --output duplicate/index.html
