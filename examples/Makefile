@@ -1,7 +1,7 @@
 MAKE=elm-make
 
 all: example player eat transform duplicate
-.PHONY: all
+.PHONY: all example player eat transform duplicate
 
 example:
 	$(MAKE) example/Example.elm --output example/index.html
