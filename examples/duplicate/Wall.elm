@@ -26,8 +26,8 @@ wallMeta = Meta False True False (0,0)
 
 init : Float -> Model Meta
 init width = 
-    -- bounds ( width-200, width-200) 10 e0 ( 0, 0 ) wallMeta
     bounds ( width-10, width-10) 10 e0 ( 0, 0 ) wallMeta
+    -- bounds ( width-100, width-100) 10 e0 ( 0, 0 ) wallMeta
 
 
 
@@ -35,13 +35,13 @@ init width =
 type Msg
     = Tick Time
 
-collideWith : Model Meta -> (Body Meta) -> (Body Meta)
+collideWith : Model meta1 -> (Body meta2) -> (Body meta2)
 collideWith walls user =
     List.foldl collideWithWall user walls
 
 {-| collideWithWall collides a body with a wall, and returns that body
 -}
-collideWithWall : Body Meta -> (Body Meta) -> Body Meta
+collideWithWall : Body meta1 -> (Body meta2) -> Body meta2
 collideWithWall wall user =
     let collisionResult =
             Engine.collision wall user

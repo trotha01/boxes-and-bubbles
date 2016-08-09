@@ -16,13 +16,14 @@ type alias Model meta =
 -- todo: simplify this meta type
 type alias Meta =
     { isFood: Bool
+    , eaten : Bool
     , isWall: Bool
     , isBound: Bool
     , dir: BoxesAndBubbles.Math2D.Vec2 
     }
 
 meta : Meta
-meta = Meta False False False (0,0)
+meta = Meta False False False False (0,0)
 
 init : Model Meta
 init = 
@@ -64,10 +65,15 @@ someBodies =
 -- UPDATE
 type Msg
     = Tick Time
+     | Points Int
 
-update : Msg -> Model Meta -> Model Meta
-update (Tick dt) model =
-    collideBodies dt model
+update : Msg -> Model Meta -> (Model Meta, List Msg)
+update msg model =
+  case msg of
+    Tick dt ->
+      collideBodies dt model
+    _ ->
+      (model, [])
 
 circArea : Float -> Float
 circArea r =
@@ -85,47 +91,47 @@ combineShapes a0 b0 =
             _ -> { a0 | shape = Box (15, 15) } -- we should never hit this case, only circles are food
      in {combined|meta={meta|isFood=False}}
 
-collideBodyWith : Float -> Body Meta -> List (Body Meta) -> List (Body Meta) -> List (Body Meta)
-collideBodyWith dt a0 bodies acc =
+collideBodyWith : Float -> Body Meta -> List (Body Meta) -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)
+collideBodyWith dt a0 bodies (acc, accMsg) =
     case bodies of
         [] ->
-            (a0 :: acc)
+            ((a0 :: acc), accMsg)
 
         b0 :: bs ->
             let
                 collisionResult =
                     Engine.collision a0 b0
                 in if collisionResult.penetration > 0
-                        && a0.meta.isFood == True
-                        && b0.meta.isFood == True
+                        && a0.meta.eaten == True
+                        && b0.meta.eaten == True
                 then -- combine the food. TODO: create a new object from the side when this happens
                     let combined = combineShapes a0 b0
-                     in collideBodyWith dt combined bs acc
+                     in collideBodyWith dt combined bs (acc, (Points 10) :: accMsg)
                 else
                     let ( a1, b1 ) =
                         Engine.resolveCollision collisionResult a0 b0
                     in
-                        collideBodyWith dt a1 bs (b1 :: acc)
+                        collideBodyWith dt a1 bs ((b1 :: acc), accMsg)
 
-collideBodiesAcc  : Float -> List (Body Meta) -> List (Body Meta) -> List (Body Meta)
-collideBodiesAcc dt acc bodies =
+collideBodiesAcc  : Float -> (List (Body Meta), List Msg) -> List (Body Meta) -> (List (Body Meta), List Msg)
+collideBodiesAcc dt (acc, accMsgs) bodies =
     case bodies of
         [] ->
-            acc
+            (acc, accMsgs)
 
         h :: t ->
-            case collideBodyWith dt h t [] of
-                [] ->
-                    []
+            case collideBodyWith dt h t ([], []) of
+                ([], msgs) ->
+                    ([], accMsgs ++ msgs)
 
-                (h1 :: t1) -> 
-                    collideBodiesAcc dt (h1 :: acc) t1
+                ((h1 :: t1), msgs) -> 
+                    collideBodiesAcc dt ((h1 :: acc), accMsgs ++ msgs) t1
 
-collideBodies : Float -> Model Meta -> Model Meta
+collideBodies : Float -> Model Meta -> (Model Meta, List Msg)
 collideBodies dt model =
-    let collidedBodies = collideBodiesAcc dt [] model
+    let (collidedBodies, msgs) = collideBodiesAcc dt ([], []) model
         newBodies = List.map (uncurry Engine.update (noGravity dt)) collidedBodies
-    in  newBodies
+    in  (newBodies, msgs)
 
 -- VIEW
 view : Model meta -> List Form

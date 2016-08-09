@@ -15,6 +15,7 @@ type alias Model meta =
 -- todo: simplify this meta type
 type alias Meta =
     { isFood: Bool
+    , eaten : Bool
     , isWall: Bool
     , isBound: Bool
     , dir: BoxesAndBubbles.Math2D.Vec2 
@@ -22,23 +23,24 @@ type alias Meta =
 
 -- TODO: simplify meta
 boundMeta: Meta
-boundMeta = Meta False False True (0,0)
+boundMeta = Meta False False False True (0,0)
 
 init : Float -> Float -> Model Meta
 init width height = 
-    bounds ( width+300, height+300) 10 e0 ( 0, 0 ) boundMeta
+    bounds ( width+400, height+400) 10 e0 ( 0, 0 ) boundMeta
+    -- bounds ( width-20, height-20) 10 e0 ( 0, 0 ) boundMeta
 
 
 
 -- UPDATE
-type Msg
+type Msg meta
     = Tick Time
-    | Regenerate (Body Meta)
+    | Regenerate (Body meta)
 
 
 {-| collideWithBodies: collide bounds with list of body
 -}
-collideWithBodies : Model Meta -> List (Body Meta) -> (List (Body Meta), List Msg)
+collideWithBodies : Model meta -> List (Body meta) -> (List (Body meta), List (Msg meta))
 collideWithBodies bounds bodies =
     List.foldl
         (\body (bodyAcc, msgsAcc) ->
@@ -47,22 +49,9 @@ collideWithBodies bounds bodies =
         ([], [])
         bodies
 
-{- We return a List Msg and List Body, to make accumulating them easier
--}
--- collideBoundsWithBody : Model Meta -> Body Meta -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)
--- collideBoundsWithBody bounds body (bodyAcc, msgAcc) =
---     case bounds of
---         [] -> (bodyAcc, msgAcc)
---         bound :: bs ->
---             let collisionResult = Engine.collision bound body
---             in if collisionResult.penetration > 0
---                 then (bodyAcc, [Regenerate body])
---                 else collideBoundsWithBody bs body (bodyAcc, msgAcc)
-
-
 {-| We return a List Msg and List Body, to make accumulating them easier
 -}
-collideBoundsWithBodies : Model Meta -> List (Body Meta) -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)
+collideBoundsWithBodies : Model meta -> List (Body meta) -> (List (Body meta), List (Msg meta)) -> (List (Body meta), List (Msg meta))
 collideBoundsWithBodies bounds bodies (bodyAcc, msgAcc) =
     case (bounds, bodies) of
         ([], _) -> (bodyAcc, msgAcc)
@@ -73,10 +62,6 @@ collideBoundsWithBodies bounds bodies (bodyAcc, msgAcc) =
                 then (bodyAcc, (Regenerate body) :: msgAcc)
                 else collideBoundsWithBodies bnds bds (bodyAcc, msgAcc)     
 
-
--- should we collide
---    bound  & bodies
--- or bounds & body  ?
 collideBoundWithBodies bound bodies (bodyAcc, msgAcc) =
     case bodies of
         [] -> []
@@ -86,7 +71,7 @@ collideBoundWithBodies bound bodies (bodyAcc, msgAcc) =
                 then collideBoundWithBodies bound bs (bodyAcc, (Regenerate body) :: msgAcc)
                 else collideBoundWithBodies bound (body :: bs) (bodyAcc, msgAcc)  -- this will have no base case
 
-collideBoundsWithBody : List (Body Meta) -> Maybe (Body Meta) -> (List (Body Meta), List Msg) -> (List (Body Meta), List Msg)
+collideBoundsWithBody : List (Body meta) -> Maybe (Body meta) -> (List (Body meta), List (Msg meta)) -> (List (Body meta), List (Msg meta))
 collideBoundsWithBody bounds maybeBody (bodyAcc, msgAcc) =
     case (bounds, maybeBody) of
         ([], Just body) -> (body :: bodyAcc, msgAcc)

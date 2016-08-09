@@ -40,10 +40,11 @@ collisionBubbleBubble b0b1 radius0 radius1 =
         distanceSq =
             lenSq b0b1
 
-        (smallR, largeR) =
-            if radius0 < radius1
-            then (radius0, radius1)
-            else (radius1, radius0)
+        ( smallR, largeR ) =
+            if radius0 < radius1 then
+                ( radius0, radius1 )
+            else
+                ( radius1, radius0 )
 
         -- simple optimization: doesn't compute sqrt unless necessary
     in
@@ -57,14 +58,19 @@ collisionBubbleBubble b0b1 radius0 radius1 =
             let
                 d =
                     sqrt distanceSq
+
                 penetration =
                     radiusb0b1 - d
+
                 normal =
                     div2 b0b1 d
-                (normal2, penetration2) =
-                    if penetration > smallR
-                    then ((neg normal), penetration) --  inner bump, negate the normal
-                    else (normal, penetration) 
+
+                ( normal2, penetration2 ) =
+                    if penetration > smallR then
+                        ( (neg normal), penetration )
+                        --  inner bump, negate the normal
+                    else
+                        ( normal, penetration )
             in
                 CollisionResult (normal2) (penetration2)
 
@@ -168,7 +174,7 @@ collisionBoxBubble ( posBox, boxExtents ) ( posBubble, bubbleRadius ) =
 -- figure out what collision resolution to use
 
 
-collision : Body a -> Body a -> CollisionResult
+collision : Body a -> Body b -> CollisionResult
 collision body0 body1 =
     case ( body0.shape, body1.shape ) of
         ( Bubble b0, Bubble b1 ) ->
@@ -198,7 +204,7 @@ collision body0 body1 =
 -- modify bodies' trajectories when they collide
 
 
-resolveCollision : CollisionResult -> Body a -> Body a -> ( Body a, Body a )
+resolveCollision : CollisionResult -> Body a -> Body b -> ( Body a, Body b )
 resolveCollision { normal, penetration } b0 b1 =
     let
         relativeVelocity =
