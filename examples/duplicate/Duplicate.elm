@@ -27,11 +27,11 @@ import Bound
 
 
 type alias Model =
-    { bodies : List (Body Bodies.Meta)
+    { bodies : Bodies.Model
     , user : User.Model
-    , children : List (Body Bodies.Meta)
-    , walls : Wall.Model Wall.Meta
-    , bounds : Bound.Model Bound.Meta
+    , children : Bodies.Model
+    , walls : Wall.Model
+    , bounds : Bound.Model
     , seed : Random.Seed
     , points : Int
     , keyboard : Keyboard.Model

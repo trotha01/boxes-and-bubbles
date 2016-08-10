@@ -12,8 +12,8 @@ import Time exposing (Time)
 -- MODEL
 
 
-type alias Model meta =
-    List (Body meta)
+type alias Model =
+    List (Body Meta)
 
 
 
@@ -24,16 +24,12 @@ type alias Meta =
     {}
 
 
-
--- TODO: simplify meta
-
-
 boundMeta : Meta
 boundMeta =
     {}
 
 
-init : Float -> Float -> Model Meta
+init : Float -> Float -> Model
 init width height =
     bounds ( width + 400, height + 400 ) 10 e0 ( 0, 0 ) boundMeta
 
@@ -50,7 +46,7 @@ type Msg meta
 
 {-| collideWithBodies: collide bounds with list of body
 -}
-collideWithBodies : Model Meta -> List (Body meta) -> ( List (Body meta), List (Msg meta) )
+collideWithBodies : Model -> List (Body meta) -> ( List (Body meta), List (Msg meta) )
 collideWithBodies bounds bodies =
     List.foldl
         (\body ( bodyAcc, msgsAcc ) ->
@@ -62,7 +58,7 @@ collideWithBodies bounds bodies =
 
 {-| We return a List Msg and List Body, to make accumulating them easier
 -}
-collideBoundsWithBodies : Model Meta -> List (Body meta) -> ( List (Body meta), List (Msg meta) ) -> ( List (Body meta), List (Msg meta) )
+collideBoundsWithBodies : Model -> List (Body meta) -> ( List (Body meta), List (Msg meta) ) -> ( List (Body meta), List (Msg meta) )
 collideBoundsWithBodies bounds bodies ( bodyAcc, msgAcc ) =
     case ( bounds, bodies ) of
         ( [], _ ) ->
@@ -129,7 +125,7 @@ collideBoundsWithBody bounds maybeBody ( bodyAcc, msgAcc ) =
 -- VIEW
 
 
-view : Model Meta -> List Form
+view : Model -> List Form
 view model =
     List.map drawBody model
 

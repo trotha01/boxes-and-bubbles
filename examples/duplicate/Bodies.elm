@@ -13,8 +13,8 @@ import Random
 -- MODEL
 
 
-type alias Model meta =
-    List (Body meta)
+type alias Model =
+    List (Body Meta)
 
 
 type alias Meta =
@@ -36,7 +36,7 @@ type Msg
     | Points Int
 
 
-update : Msg -> Model Meta -> ( Model Meta, List Msg )
+update : Msg -> Model -> ( Model, List Msg )
 update msg model =
     case msg of
         Tick dt ->
@@ -89,12 +89,9 @@ collideBodyWith dt a0 bodies ( acc, accMsg ) =
                     Engine.collision a0 b0
             in
                 if
-                    collisionResult.penetration
-                        > 0
-                        && a0.meta.eaten
-                        == True
-                        && b0.meta.eaten
-                        == True
+                    (collisionResult.penetration > 0)
+                        && (a0.meta.eaten == True)
+                        && (b0.meta.eaten == True)
                 then
                     -- combine the food. TODO: create a new object from the side when this happens
                     let
@@ -125,7 +122,7 @@ collideBodiesAcc dt ( acc, accMsgs ) bodies =
                     collideBodiesAcc dt ( (h1 :: acc), accMsgs ++ msgs ) t1
 
 
-collideBodies : Float -> Model Meta -> ( Model Meta, List Msg )
+collideBodies : Float -> Model -> ( Model, List Msg )
 collideBodies dt model =
     let
         ( collidedBodies, msgs ) =
@@ -141,7 +138,7 @@ collideBodies dt model =
 -- VIEW
 
 
-view : Model Meta -> List Form
+view : Model -> List Form
 view model =
     List.map drawBody model
 

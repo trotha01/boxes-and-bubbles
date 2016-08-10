@@ -12,8 +12,8 @@ import Time exposing (Time)
 -- MODEL
 
 
-type alias Model meta =
-    List (Body meta)
+type alias Model =
+    List (Body Meta)
 
 
 
@@ -33,7 +33,7 @@ wallMeta =
     {}
 
 
-init : Float -> Model Meta
+init : Float -> Model
 init width =
     bounds ( width - 10, width - 10 ) 10 e0 ( 0, 0 ) wallMeta
 
@@ -47,7 +47,7 @@ type Msg
     = Tick Time
 
 
-collideWith : Model Meta -> Body meta2 -> Body meta2
+collideWith : Model -> Body meta2 -> Body meta2
 collideWith walls user =
     List.foldl collideWithWall user walls
 
@@ -70,7 +70,7 @@ collideWithWall wall user =
 -- VIEW
 
 
-view : Model Meta -> List Form
+view : Model -> List Form
 view model =
     List.map drawBody model
 
