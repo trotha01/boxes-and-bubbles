@@ -24,8 +24,8 @@ It doesn't do:
 
 
 Further Examples:
-- [basic example](http://trotha01.github.io/boexes-and-bubbles/examples/example/)
-- [player](http://trotha01.github.io/boexes-and-bubbles/examples/player/)
-- [eat](http://trotha01.github.io/boexes-and-bubbles/examples/eat/)
-- [transform](http://trotha01.github.io/boexes-and-bubbles/examples/transform/)
-- [duplicate](http://trotha01.github.io/boexes-and-bubbles/examples/duplicate/)
+- [basic example](http://trotha01.github.io/boxes-and-bubbles/examples/example/)
+- [player](http://trotha01.github.io/boxes-and-bubbles/examples/player/)
+- [eat](http://trotha01.github.io/boxes-and-bubbles/examples/eat/)
+- [transform](http://trotha01.github.io/boxes-and-bubbles/examples/transform/)
+- [duplicate](http://trotha01.github.io/boxes-and-bubbles/examples/duplicate/)
