@@ -26,10 +26,10 @@ import Bound
 -- MODEL
 
 
-type alias Model meta =
-    { bodies : List (Body meta)
+type alias Model =
+    { bodies : List (Body Bodies.Meta)
     , user : User.Model User.Meta
-    , children : List (Body meta)
+    , children : List (Body Bodies.Meta)
     , walls : Wall.Model Wall.Meta
     , bounds : Bound.Model Bound.Meta
     , seed : Random.Seed
@@ -38,7 +38,7 @@ type alias Model meta =
     }
 
 
-initialModel : Keyboard.Model -> Model Bodies.Meta
+initialModel : Keyboard.Model -> Model
 initialModel keyboard =
     { bodies = Bodies.init
     , user = User.init
@@ -59,7 +59,7 @@ initialModel keyboard =
     ( 700, 700 )
 ( halfHeight, halfWidth ) =
     ( height / 2, width / 2 )
-scene : Model Bodies.Meta -> Element
+scene : Model -> Element
 scene model =
     collage width height
         <| ((User.view model.user)
@@ -69,7 +69,7 @@ scene model =
         ++ points model
 
 
-points : Model meta -> List Form
+points : Model -> List Form
 points model =
     [ (text (Text.fromString (toString model.points))) |> Collage.move ( halfWidth - 50, halfHeight - 50 ) ]
 
@@ -86,7 +86,7 @@ type Msg
     | Regenerate (Body Bodies.Meta)
 
 
-update : Msg -> Model Bodies.Meta -> ( Model Bodies.Meta, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Points p ->
