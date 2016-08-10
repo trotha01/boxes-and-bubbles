@@ -52,21 +52,25 @@ initialModel =
 
 -- VIEW
 
+
 ( height, width ) =
     ( 700, 700 )
 ( halfHeight, halfWidth ) =
-    ( height/2, width/2)
-
+    ( height / 2, width / 2 )
 scene : ( Model Bodies.Meta, Keyboard.Model ) -> Element
 scene ( model, keyboard ) =
     collage width height
-        <| ((User.view model.user) :: (Bodies.view model.bodies ++ Bodies.view model.children)
-           ++ (Wall.view model.walls))
-           ++ points model
+        <| ((User.view model.user)
+                :: (Bodies.view model.bodies ++ Bodies.view model.children)
+                ++ (Wall.view model.walls)
+           )
+        ++ points model
+
 
 points : Model meta -> List Form
 points model =
-      [(text (Text.fromString (toString model.points))) |> Collage.move (halfWidth-50, halfHeight-50) ]
+    [ (text (Text.fromString (toString model.points))) |> Collage.move ( halfWidth - 50, halfHeight - 50 ) ]
+
 
 
 -- UPDATE
@@ -84,13 +88,21 @@ update : Msg -> ( Model Bodies.Meta, Keyboard.Model ) -> ( ( Model Bodies.Meta, 
 update msg ( model, keyboard ) =
     case msg of
         Points p ->
-            let ((_, children, _), _) = User.update User.MakeChild (model.user, keyboard)
-                model2 = {model|points = model.points + p}
+            let
+                ( ( _, children, _ ), _ ) =
+                    User.update User.MakeChild ( model.user, keyboard )
+
+                model2 =
+                    { model | points = model.points + p }
+
                 model3 =
-                  if model2.points /= 0 && model2.points % 100 == 0
-                  then {model2 | children = model2.children ++ children}
-                  else model2
-            in ((model3, keyboard), Cmd.none)
+                    if model2.points /= 0 && model2.points % 100 == 0 then
+                        { model2 | children = model2.children ++ children }
+                    else
+                        model2
+            in
+                ( ( model3, keyboard ), Cmd.none )
+
         Tick dt ->
             let
                 -- update user
@@ -104,17 +116,16 @@ update msg ( model, keyboard ) =
                 -- collide user with the children
                 -- ( user3, children2) =
                 --     User.collideWithBodies user1 (model.children ++ children)
-
                 -- collide user with the wall
                 user4 =
                     Wall.collideWith model.walls user2
 
                 -- update the body collisions
-                (bodies3, pointMsgs) =
+                ( bodies3, pointMsgs ) =
                     Bodies.update (Bodies.Tick dt) (bodies2)
 
                 -- update the children collisions
-                (children3, _) =
+                ( children3, _ ) =
                     Bodies.update (Bodies.Tick dt) (model.children ++ children)
 
                 -- collide children with the bounds
@@ -138,9 +149,13 @@ update msg ( model, keyboard ) =
                 ( ( model4, keyboard3 ), cmd3 ) =
                     List.foldl
                         (\msg ( ( m, k ), cmd ) ->
-                          case msg of
-                              (Bodies.Points p) -> (update (Points p) (m, k))
-                              _ -> ((m, k), cmd))
+                            case msg of
+                                Bodies.Points p ->
+                                    (update (Points p) ( m, k ))
+
+                                _ ->
+                                    ( ( m, k ), cmd )
+                        )
                         ( ( model3, keyboard2 ), Cmd.none )
                         pointMsgs
             in
@@ -162,10 +177,12 @@ update msg ( model, keyboard ) =
                     { model | bodies = model.bodies ++ [ newBody ], seed = newSeed }
             in
                 ( ( newModel, keyboard ), Cmd.none )
+
         BoundMsg msg ->
             case msg of
                 Bound.Regenerate body ->
-                  update (Regenerate body) (model, keyboard)
+                    update (Regenerate body) ( model, keyboard )
+
                 _ ->
                     ( ( model, keyboard ), Cmd.none )
 
@@ -240,5 +257,3 @@ sinforce t =
 -}
 counterforces t =
     ( ( 0, -0.01 ), ( 0, t / 1000 ) )
-
-

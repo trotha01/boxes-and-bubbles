@@ -47,25 +47,31 @@ type Msg
     | MakeChild
 
 
+
 -- TODO: add type signature
+
+
 update : Msg -> ( Model Meta, Keyboard.Model ) -> ( ( Model Meta, List (Body Bodies.Meta), Keyboard.Model ), Cmd Keyboard.Msg )
 update msg ( model, keyboard ) =
     case msg of
         MakeChild ->
-          let
-             children =
-                    [{ pos = model.pos
-                    , velocity = model.velocity
-                    , inverseMass = model.inverseMass
-                    , restitution = model.restitution
-                    , shape = model.shape
-                    , color = model.color
-                    , meta =
-                      { eaten = False
-                      , isFood = False
+            let
+                children =
+                    [ { pos = model.pos
+                      , velocity = model.velocity
+                      , inverseMass = model.inverseMass
+                      , restitution = model.restitution
+                      , shape = model.shape
+                      , color = model.color
+                      , meta =
+                            { eaten = False
+                            , isFood = False
+                            }
                       }
-                    }]
-          in ( ( model, children, keyboard ), Cmd.none )
+                    ]
+            in
+                ( ( model, children, keyboard ), Cmd.none )
+
         Tick dt ->
             let
                 model2 =
@@ -110,7 +116,8 @@ swallow food =
 collideWithBody : Model Meta -> Body (Food a) -> ( Model Meta, Body (Food a) )
 collideWithBody user body =
     let
-        collisionResult = -- TODO: only collide if we have to
+        collisionResult =
+            -- TODO: only collide if we have to
             Engine.collision user body
 
         ( user1, body1 ) =
