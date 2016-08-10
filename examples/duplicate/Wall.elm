@@ -14,15 +14,11 @@ type alias Model meta =
 
 -- todo: simplify this meta type
 type alias Meta =
-    { isFood: Bool
-    , isWall: Bool
-    , isBound: Bool
-    , dir: BoxesAndBubbles.Math2D.Vec2 
-    }
+    {}
 
 -- TODO: simplify meta
 wallMeta: Meta
-wallMeta = Meta False True False (0,0)
+wallMeta = {}
 
 init : Float -> Model Meta
 init width = 
@@ -35,13 +31,13 @@ init width =
 type Msg
     = Tick Time
 
-collideWith : Model meta1 -> (Body meta2) -> (Body meta2)
+collideWith : Model Meta -> (Body meta2) -> (Body meta2)
 collideWith walls user =
     List.foldl collideWithWall user walls
 
 {-| collideWithWall collides a body with a wall, and returns that body
 -}
-collideWithWall : Body meta1 -> (Body meta2) -> Body meta2
+collideWithWall : Body Meta -> (Body meta2) -> Body meta2
 collideWithWall wall user =
     let collisionResult =
             Engine.collision wall user
@@ -49,11 +45,11 @@ collideWithWall wall user =
      in user2
 
 -- VIEW
-view : Model meta -> List Form
+view : Model Meta -> List Form
 view model =
     List.map drawBody model
 
-drawBody : Body meta -> Form
+drawBody : Body Meta -> Form
 drawBody model =
         let
         veloLine =

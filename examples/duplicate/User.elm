@@ -23,16 +23,13 @@ type alias Model meta =
 
 
 type alias Meta =
-    { isFood : Bool
-    , isWall : Bool
-    , isBound : Bool
-    , dir : BoxesAndBubbles.Math2D.Vec2
+    { dir : BoxesAndBubbles.Math2D.Vec2
     }
 
 
 meta : Meta
 meta =
-    Meta False False False ( 0, 0 )
+    Meta ( 0, 0 )
 
 
 init : Model Meta
@@ -50,6 +47,7 @@ type Msg
     | MakeChild
 
 
+-- TODO: add type signature
 update : Msg -> ( Model Meta, Keyboard.Model ) -> ( ( Model Meta, List (Body Bodies.Meta), Keyboard.Model ), Cmd Keyboard.Msg )
 update msg ( model, keyboard ) =
     case msg of
@@ -63,10 +61,10 @@ update msg ( model, keyboard ) =
                     , shape = model.shape
                     , color = model.color
                     , meta =
-                      { isFood = False
-                      , eaten = False
-                      , isWall = False
+                      { eaten = False
                       , isBound = False
+                      , isFood = False
+                      , isWall = False
                       , dir = (0,0)
                       }
                     }]

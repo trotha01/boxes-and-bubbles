@@ -1,7 +1,7 @@
 MAKE=elm-make
 
 all: example/index.html player/index.html eat/index.html transform/index.html duplicate/index.html
-.PHONY: all
+.PHONY: all duplicate/index.html
 
 example/index.html: example/Example.elm
 	$(MAKE) example/Example.elm --output example/index.html

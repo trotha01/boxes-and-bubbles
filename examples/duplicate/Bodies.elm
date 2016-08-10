@@ -17,13 +17,11 @@ type alias Model meta =
 type alias Meta =
     { isFood: Bool
     , eaten : Bool
-    , isWall: Bool
-    , isBound: Bool
     , dir: BoxesAndBubbles.Math2D.Vec2 
     }
 
 meta : Meta
-meta = Meta False False False False (0,0)
+meta = Meta False False (0,0)
 
 init : Model Meta
 init = 

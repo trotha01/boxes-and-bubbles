@@ -12014,14 +12014,12 @@ var _jastice$boxes_and_bubbles$Bodies$bColor = A3(_elm_lang$core$Color$rgb, 238,
 var _jastice$boxes_and_bubbles$Bodies$_p2 = {ctor: '_Tuple2', _0: 20, _1: 10};
 var _jastice$boxes_and_bubbles$Bodies$bubbleCount = _jastice$boxes_and_bubbles$Bodies$_p2._0;
 var _jastice$boxes_and_bubbles$Bodies$boxCount = _jastice$boxes_and_bubbles$Bodies$_p2._1;
-var _jastice$boxes_and_bubbles$Bodies$Meta = F5(
-	function (a, b, c, d, e) {
-		return {isFood: a, eaten: b, isWall: c, isBound: d, dir: e};
+var _jastice$boxes_and_bubbles$Bodies$Meta = F3(
+	function (a, b, c) {
+		return {isFood: a, eaten: b, dir: c};
 	});
-var _jastice$boxes_and_bubbles$Bodies$meta = A5(
+var _jastice$boxes_and_bubbles$Bodies$meta = A3(
 	_jastice$boxes_and_bubbles$Bodies$Meta,
-	false,
-	false,
 	false,
 	false,
 	{ctor: '_Tuple2', _0: 0, _1: 0});
@@ -12301,17 +12299,7 @@ var _jastice$boxes_and_bubbles$Bound$drawBody = function (model) {
 var _jastice$boxes_and_bubbles$Bound$view = function (model) {
 	return A2(_elm_lang$core$List$map, _jastice$boxes_and_bubbles$Bound$drawBody, model);
 };
-var _jastice$boxes_and_bubbles$Bound$Meta = F5(
-	function (a, b, c, d, e) {
-		return {isFood: a, eaten: b, isWall: c, isBound: d, dir: e};
-	});
-var _jastice$boxes_and_bubbles$Bound$boundMeta = A5(
-	_jastice$boxes_and_bubbles$Bound$Meta,
-	false,
-	false,
-	false,
-	true,
-	{ctor: '_Tuple2', _0: 0, _1: 0});
+var _jastice$boxes_and_bubbles$Bound$boundMeta = {};
 var _jastice$boxes_and_bubbles$Bound$init = F2(
 	function (width, height) {
 		return A5(
@@ -12322,6 +12310,7 @@ var _jastice$boxes_and_bubbles$Bound$init = F2(
 			{ctor: '_Tuple2', _0: 0, _1: 0},
 			_jastice$boxes_and_bubbles$Bound$boundMeta);
 	});
+var _jastice$boxes_and_bubbles$Bound$Meta = {};
 var _jastice$boxes_and_bubbles$Bound$Regenerate = function (a) {
 	return {ctor: 'Regenerate', _0: a};
 };
@@ -13110,10 +13099,10 @@ var _jastice$boxes_and_bubbles$User$update = F2(
 						shape: _p15.shape,
 						color: _p15.color,
 						meta: {
-							isFood: false,
 							eaten: false,
-							isWall: false,
 							isBound: false,
+							isFood: false,
+							isWall: false,
 							dir: {ctor: '_Tuple2', _0: 0, _1: 0}
 						}
 					}
@@ -13159,15 +13148,10 @@ var _jastice$boxes_and_bubbles$User$update = F2(
 				};
 		}
 	});
-var _jastice$boxes_and_bubbles$User$Meta = F4(
-	function (a, b, c, d) {
-		return {isFood: a, isWall: b, isBound: c, dir: d};
-	});
-var _jastice$boxes_and_bubbles$User$meta = A4(
-	_jastice$boxes_and_bubbles$User$Meta,
-	false,
-	false,
-	false,
+var _jastice$boxes_and_bubbles$User$Meta = function (a) {
+	return {dir: a};
+};
+var _jastice$boxes_and_bubbles$User$meta = _jastice$boxes_and_bubbles$User$Meta(
 	{ctor: '_Tuple2', _0: 0, _1: 0});
 var _jastice$boxes_and_bubbles$User$init = A7(
 	_jastice$boxes_and_bubbles$BoxesAndBubbles$bubble,
@@ -13243,16 +13227,7 @@ var _jastice$boxes_and_bubbles$Wall$collideWith = F2(
 	function (walls, user) {
 		return A3(_elm_lang$core$List$foldl, _jastice$boxes_and_bubbles$Wall$collideWithWall, user, walls);
 	});
-var _jastice$boxes_and_bubbles$Wall$Meta = F4(
-	function (a, b, c, d) {
-		return {isFood: a, isWall: b, isBound: c, dir: d};
-	});
-var _jastice$boxes_and_bubbles$Wall$wallMeta = A4(
-	_jastice$boxes_and_bubbles$Wall$Meta,
-	false,
-	true,
-	false,
-	{ctor: '_Tuple2', _0: 0, _1: 0});
+var _jastice$boxes_and_bubbles$Wall$wallMeta = {};
 var _jastice$boxes_and_bubbles$Wall$init = function (width) {
 	return A5(
 		_jastice$boxes_and_bubbles$BoxesAndBubbles$bounds,
@@ -13262,6 +13237,7 @@ var _jastice$boxes_and_bubbles$Wall$init = function (width) {
 		{ctor: '_Tuple2', _0: 0, _1: 0},
 		_jastice$boxes_and_bubbles$Wall$wallMeta);
 };
+var _jastice$boxes_and_bubbles$Wall$Meta = {};
 var _jastice$boxes_and_bubbles$Wall$Tick = function (a) {
 	return {ctor: 'Tick', _0: a};
 };
