@@ -34,11 +34,12 @@ type alias Model meta =
     , bounds : Bound.Model Bound.Meta
     , seed : Random.Seed
     , points : Int
+    , keyboard : Keyboard.Model
     }
 
 
-initialModel : Model Bodies.Meta
-initialModel =
+initialModel : Keyboard.Model -> Model Bodies.Meta
+initialModel keyboard =
     { bodies = Bodies.init
     , user = User.init
     , children = []
@@ -46,6 +47,7 @@ initialModel =
     , bounds = Bound.init width height
     , seed = Random.initialSeed 3
     , points = 0
+    , keyboard = keyboard
     }
 
 
@@ -57,8 +59,8 @@ initialModel =
     ( 700, 700 )
 ( halfHeight, halfWidth ) =
     ( height / 2, width / 2 )
-scene : ( Model Bodies.Meta, Keyboard.Model ) -> Element
-scene ( model, keyboard ) =
+scene : Model Bodies.Meta -> Element
+scene model =
     collage width height
         <| ((User.view model.user)
                 :: (Bodies.view model.bodies ++ Bodies.view model.children)
@@ -84,13 +86,13 @@ type Msg
     | Regenerate (Body Bodies.Meta)
 
 
-update : Msg -> ( Model Bodies.Meta, Keyboard.Model ) -> ( ( Model Bodies.Meta, Keyboard.Model ), Cmd Msg )
-update msg ( model, keyboard ) =
+update : Msg -> Model Bodies.Meta -> ( Model Bodies.Meta, Cmd Msg )
+update msg model =
     case msg of
         Points p ->
             let
                 ( ( _, children, _ ), _ ) =
-                    User.update User.MakeChild ( model.user, keyboard )
+                    User.update User.MakeChild ( model.user, model.keyboard )
 
                 model2 =
                     { model | points = model.points + p }
@@ -101,13 +103,13 @@ update msg ( model, keyboard ) =
                     else
                         model2
             in
-                ( ( model3, keyboard ), Cmd.none )
+                ( model3, Cmd.none )
 
         Tick dt ->
             let
                 -- update user
                 ( ( user1, children, _ ), _ ) =
-                    User.update (User.Tick dt) ( model.user, keyboard )
+                    User.update (User.Tick dt) ( model.user, model.keyboard )
 
                 -- collide user with the bodies
                 ( user2, bodies2 ) =
@@ -140,33 +142,33 @@ update msg ( model, keyboard ) =
                     { model | user = user4, bodies = bodies4, children = children4 }
 
                 -- hack, since I don't know how to generate a Cmd
-                ( ( model3, keyboard2 ), cmd2 ) =
-                    List.foldl (\msg ( ( m, k ), cmd ) -> (update (BoundMsg msg) ( m, k )))
-                        ( ( model2, keyboard ), Cmd.none )
+                ( model3, cmd2 ) =
+                    List.foldl (\msg ( m, cmd ) -> (update (BoundMsg msg) m))
+                        ( model2, Cmd.none )
                         msgs'
 
                 -- hack2, since I don't know how to generate a Cmd
-                ( ( model4, keyboard3 ), cmd3 ) =
+                ( model4, cmd3 ) =
                     List.foldl
-                        (\msg ( ( m, k ), cmd ) ->
+                        (\msg ( m, cmd ) ->
                             case msg of
                                 Bodies.Points p ->
-                                    (update (Points p) ( m, k ))
+                                    (update (Points p) m)
 
                                 _ ->
-                                    ( ( m, k ), cmd )
+                                    ( m, cmd )
                         )
-                        ( ( model3, keyboard2 ), Cmd.none )
+                        ( model3, Cmd.none )
                         pointMsgs
             in
-                ( ( model4, keyboard3 ), cmd3 )
+                ( model4, cmd3 )
 
         KeyPress keyMsg ->
             let
                 ( ( updatedUser, _, keyboard ), keyboardCmd ) =
-                    User.update (User.KeyPress keyMsg) ( model.user, keyboard )
+                    User.update (User.KeyPress keyMsg) ( model.user, model.keyboard )
             in
-                ( ( { model | user = updatedUser }, keyboard ), Cmd.map KeyPress keyboardCmd )
+                ( { model | user = updatedUser, keyboard = keyboard }, Cmd.map KeyPress keyboardCmd )
 
         Regenerate body ->
             let
@@ -176,15 +178,15 @@ update msg ( model, keyboard ) =
                 newModel =
                     { model | bodies = model.bodies ++ [ newBody ], seed = newSeed }
             in
-                ( ( newModel, keyboard ), Cmd.none )
+                ( newModel, Cmd.none )
 
         BoundMsg msg ->
             case msg of
                 Bound.Regenerate body ->
-                    update (Regenerate body) ( model, keyboard )
+                    update (Regenerate body) model
 
                 _ ->
-                    ( ( model, keyboard ), Cmd.none )
+                    ( model, Cmd.none )
 
 
 
@@ -210,7 +212,7 @@ main =
             Keyboard.init
     in
         program
-            { init = ( ( initialModel, keyboard ), Cmd.map KeyPress keyboardCmd )
+            { init = ( (initialModel keyboard), Cmd.map KeyPress keyboardCmd )
             , update = update
             , subscriptions = always subs
             , view = scene >> Element.toHtml
