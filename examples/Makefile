@@ -11,5 +11,5 @@ eat/index.html: eat/Eat.elm
 	$(MAKE) eat/Eat.elm --output eat/index.html
 transform/index.html: transform/Transform.elm
 	$(MAKE) transform/Transform.elm --output transform/index.html
-duplicate/index.html: duplicate/Duplicate.elm duplicate/*.elm
+duplicate/index.html: duplicate/*.elm
 	$(MAKE) duplicate/Duplicate.elm --output duplicate/index.html
