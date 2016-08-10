@@ -46,38 +46,34 @@ update msg model =
             ( model, [] )
 
 
-circArea : Float -> Float
-circArea r =
-    pi * r * r
-
-
-combineShapes : Body Meta -> Body Meta -> Body Meta
-combineShapes a0 b0 =
+collideBodies : Float -> Model -> ( Model, List Msg )
+collideBodies dt model =
     let
-        combined =
-            case ( a0.shape, b0.shape ) of
-                ( Bubble r1, Bubble r2 ) ->
-                    let
-                        a1 =
-                            circArea r1
+        ( collidedBodies, msgs ) =
+            collideBodiesAcc dt ( [], [] ) model
 
-                        a2 =
-                            circArea r2
-
-                        boxSide =
-                            sqrt ((a1 + a2) / 2)
-                    in
-                        { a0 | shape = Box ( boxSide, boxSide ), color = boxColor }
-
-                _ ->
-                    { a0 | shape = Box ( 15, 15 ) }
-
-        -- we should never hit this case, only circles are food
+        newBodies =
+            List.map (uncurry Engine.update (noGravity dt)) collidedBodies
     in
-        { combined | meta = { meta | isFood = False } }
+        ( newBodies, msgs )
 
 
-collideBodyWith : Float -> Body Meta -> List (Body Meta) -> ( List (Body Meta), List Msg ) -> ( List (Body Meta), List Msg )
+collideBodiesAcc : Float -> ( Model, List Msg ) -> Model -> ( Model, List Msg )
+collideBodiesAcc dt ( acc, accMsgs ) bodies =
+    case bodies of
+        [] ->
+            ( acc, accMsgs )
+
+        h :: t ->
+            case collideBodyWith dt h t ( [], [] ) of
+                ( [], msgs ) ->
+                    ( [], accMsgs ++ msgs )
+
+                ( h1 :: t1, msgs ) ->
+                    collideBodiesAcc dt ( (h1 :: acc), accMsgs ++ msgs ) t1
+
+
+collideBodyWith : Float -> Body Meta -> Model -> ( Model, List Msg ) -> ( Model, List Msg )
 collideBodyWith dt a0 bodies ( acc, accMsg ) =
     case bodies of
         [] ->
@@ -107,31 +103,30 @@ collideBodyWith dt a0 bodies ( acc, accMsg ) =
                         collideBodyWith dt a1 bs ( (b1 :: acc), accMsg )
 
 
-collideBodiesAcc : Float -> ( List (Body Meta), List Msg ) -> List (Body Meta) -> ( List (Body Meta), List Msg )
-collideBodiesAcc dt ( acc, accMsgs ) bodies =
-    case bodies of
-        [] ->
-            ( acc, accMsgs )
-
-        h :: t ->
-            case collideBodyWith dt h t ( [], [] ) of
-                ( [], msgs ) ->
-                    ( [], accMsgs ++ msgs )
-
-                ( h1 :: t1, msgs ) ->
-                    collideBodiesAcc dt ( (h1 :: acc), accMsgs ++ msgs ) t1
-
-
-collideBodies : Float -> Model -> ( Model, List Msg )
-collideBodies dt model =
+combineShapes : Body Meta -> Body Meta -> Body Meta
+combineShapes a0 b0 =
     let
-        ( collidedBodies, msgs ) =
-            collideBodiesAcc dt ( [], [] ) model
+        combined =
+            case ( a0.shape, b0.shape ) of
+                ( Bubble r1, Bubble r2 ) ->
+                    let
+                        a1 =
+                            circArea r1
 
-        newBodies =
-            List.map (uncurry Engine.update (noGravity dt)) collidedBodies
+                        a2 =
+                            circArea r2
+
+                        boxSide =
+                            sqrt ((a1 + a2) / 2)
+                    in
+                        { a0 | shape = Box ( boxSide, boxSide ), color = boxColor }
+
+                _ ->
+                    { a0 | shape = Box ( 15, 15 ) }
+
+        -- we should never hit this case, only circles are food
     in
-        ( newBodies, msgs )
+        { combined | meta = { meta | isFood = False } }
 
 
 
@@ -183,8 +178,9 @@ e0 =
     0.8
 
 
-
--- meta : (Meta a)
+circArea : Float -> Float
+circArea r =
+    pi * r * r
 
 
 meta =
