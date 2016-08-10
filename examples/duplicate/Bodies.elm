@@ -132,11 +132,11 @@ collideBodies dt model =
     in  (newBodies, msgs)
 
 -- VIEW
-view : Model meta -> List Form
+view : Model Meta -> List Form
 view model =
     List.map drawBody model
 
-drawBody : Body meta -> Form
+drawBody : Body Meta -> Form
 drawBody model =
         let
         veloLine =

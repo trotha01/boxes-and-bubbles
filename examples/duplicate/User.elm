@@ -62,9 +62,7 @@ update msg ( model, keyboard ) =
                     , color = model.color
                     , meta =
                       { eaten = False
-                      , isBound = False
                       , isFood = False
-                      , isWall = False
                       , dir = (0,0)
                       }
                     }]
@@ -110,7 +108,7 @@ swallow food =
 
 {-| collideWithBody: collide user with another body
 -}
-collideWithBody : Model meta -> Body (Food a) -> ( Model meta, Body (Food a) )
+collideWithBody : Model Meta -> Body (Food a) -> ( Model Meta, Body (Food a) )
 collideWithBody user body =
     let
         collisionResult = -- TODO: only collide if we have to
@@ -149,7 +147,7 @@ collideWithBody user body =
 
 {-| collideWithBodies: collide user with list of body
 -}
-collideWithBodies : Model meta -> List (Body (Food a)) -> ( Model meta, List (Body (Food a)) )
+collideWithBodies : Model Meta -> List (Body (Food a)) -> ( Model Meta, List (Body (Food a)) )
 collideWithBodies user0 bodies0 =
     let
         ( user1, bodies1 ) =
@@ -171,7 +169,7 @@ collideWithBodies user0 bodies0 =
 -- VIEW
 
 
-view : Model meta -> Form
+view : Model Meta -> Form
 view model =
     let
         veloLine =

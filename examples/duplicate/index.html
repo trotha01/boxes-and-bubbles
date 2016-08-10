@@ -13100,9 +13100,7 @@ var _jastice$boxes_and_bubbles$User$update = F2(
 						color: _p15.color,
 						meta: {
 							eaten: false,
-							isBound: false,
 							isFood: false,
-							isWall: false,
 							dir: {ctor: '_Tuple2', _0: 0, _1: 0}
 						}
 					}
@@ -13342,8 +13340,6 @@ var _jastice$boxes_and_bubbles$Duplicate$scene = function (_p3) {
 var _jastice$boxes_and_bubbles$Duplicate$food = {
 	isFood: true,
 	eaten: false,
-	isWall: false,
-	isBound: false,
 	dir: {ctor: '_Tuple2', _0: 0, _1: 0}
 };
 var _jastice$boxes_and_bubbles$Duplicate$someBodies = function (meta) {
@@ -13364,8 +13360,6 @@ var _jastice$boxes_and_bubbles$Duplicate$someBodies = function (meta) {
 var _jastice$boxes_and_bubbles$Duplicate$meta = {
 	isFood: false,
 	eaten: false,
-	isWall: false,
-	isBound: false,
 	dir: {ctor: '_Tuple2', _0: 0, _1: 0}
 };
 var _jastice$boxes_and_bubbles$Duplicate$randBody = A2(
@@ -13418,10 +13412,6 @@ var _jastice$boxes_and_bubbles$Duplicate$initialModel = {
 var _jastice$boxes_and_bubbles$Duplicate$Model = F7(
 	function (a, b, c, d, e, f, g) {
 		return {bodies: a, user: b, children: c, walls: d, bounds: e, seed: f, points: g};
-	});
-var _jastice$boxes_and_bubbles$Duplicate$SpecificMeta = F5(
-	function (a, b, c, d, e) {
-		return {isFood: a, eaten: b, isWall: c, isBound: d, dir: e};
 	});
 var _jastice$boxes_and_bubbles$Duplicate$Regenerate = function (a) {
 	return {ctor: 'Regenerate', _0: a};

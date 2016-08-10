@@ -37,25 +37,7 @@ type alias Model meta =
     }
 
 
-type alias Meta a =
-    { a | isFood : Bool
-    , eaten : Bool
-    , isWall : Bool
-    , isBound : Bool
-    , dir : BoxesAndBubbles.Math2D.Vec2
-    }
-
-{-| TODO: get rid of this
--}
-type alias SpecificMeta =
-    { isFood : Bool
-    , eaten : Bool
-    , isWall : Bool
-    , isBound : Bool
-    , dir : BoxesAndBubbles.Math2D.Vec2
-    }
-
-initialModel : Model SpecificMeta
+initialModel : Model Bodies.Meta
 initialModel =
     { bodies = (someBodies meta)
     , user = User.init
@@ -71,16 +53,12 @@ initialModel =
 meta =
   { isFood= False
   , eaten = False
-  , isWall= False
-  , isBound= False
   , dir = ( 0, 0 )
   }
 
 food =
   { isFood= True
   , eaten = False
-  , isWall= False
-  , isBound= False
   , dir = ( 0, 0 )
   }
 
@@ -111,7 +89,7 @@ randBoxes meta =
     Random.list boxCount (randBox boxColor e0 ( -200, 200 ) ( 10, 30 ) meta)
 
 
-randBody : Random.Generator (Body SpecificMeta)
+randBody : Random.Generator (Body Bodies.Meta)
 randBody =
     Random.bool
         `Random.andThen` (\coin ->
@@ -122,7 +100,7 @@ randBody =
                          )
 
 
-someBodies : SpecificMeta -> List (Body (Meta SpecificMeta))
+someBodies : Bodies.Meta -> List (Body Bodies.Meta)
 someBodies meta =
     let
         ( bubbles, seed2 ) =
@@ -138,7 +116,7 @@ someBodies meta =
 -- VIEW
 
 
-scene : ( Model meta, Keyboard.Model ) -> Element
+scene : ( Model Bodies.Meta, Keyboard.Model ) -> Element
 scene ( model, keyboard ) =
     collage width height
         <| ((User.view model.user) :: (Bodies.view model.bodies ++ Bodies.view model.children)
@@ -157,11 +135,11 @@ type Msg
     = Tick Time
     | Points Int
     | KeyPress Keyboard.Msg
-    | BoundMsg (Bound.Msg SpecificMeta)
-    | Regenerate (Body SpecificMeta)
+    | BoundMsg (Bound.Msg Bodies.Meta)
+    | Regenerate (Body Bodies.Meta)
 
 
-update : Msg -> ( Model (Meta SpecificMeta), Keyboard.Model ) -> ( ( Model (Meta SpecificMeta), Keyboard.Model ), Cmd Msg )
+update : Msg -> ( Model Bodies.Meta, Keyboard.Model ) -> ( ( Model Bodies.Meta, Keyboard.Model ), Cmd Msg )
 update msg ( model, keyboard ) =
     case msg of
         Points p ->
@@ -326,7 +304,7 @@ counterforces t =
 {-| regenerate is used when a body has reached the bounds
 it regenerates a new body at the opposite end
 -}
-regenerate : Random.Seed -> SpecificMeta -> Body SpecificMeta -> ( Body SpecificMeta, Random.Seed )
+regenerate : Random.Seed -> Bodies.Meta -> Body Bodies.Meta -> ( Body Bodies.Meta, Random.Seed )
 regenerate seed meta body =
     let
         ( newBody, seed' ) =
