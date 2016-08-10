@@ -18,6 +18,10 @@ type alias Model =
     Body Meta
 
 
+type alias Children =
+    List (Body Bodies.Meta)
+
+
 type alias Meta =
     { dir : BoxesAndBubbles.Math2D.Vec2
     }
@@ -47,33 +51,18 @@ type Msg
 -- TODO: add type signature
 
 
-update : Msg -> ( Model, Keyboard.Model ) -> ( ( Model, List (Body Bodies.Meta), Keyboard.Model ), Cmd Keyboard.Msg )
+update : Msg -> ( Model, Keyboard.Model ) -> ( ( Model, Children, Keyboard.Model ), Cmd Keyboard.Msg )
 update msg ( model, keyboard ) =
     case msg of
         MakeChild ->
-            let
-                children =
-                    [ { pos = model.pos
-                      , velocity = model.velocity
-                      , inverseMass = model.inverseMass
-                      , restitution = model.restitution
-                      , shape = model.shape
-                      , color = model.color
-                      , meta =
-                            { eaten = False
-                            , isFood = False
-                            }
-                      }
-                    ]
-            in
-                ( ( model, children, keyboard ), Cmd.none )
+            ( ( model, [ childFromModel model ], keyboard ), Cmd.none )
 
         Tick dt ->
             let
-                model2 =
+                user2 =
                     (uncurry Engine.update (noGravity dt)) model
             in
-                ( ( model2, [], keyboard ), Cmd.none )
+                ( ( user2, [], keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let
@@ -83,10 +72,25 @@ update msg ( model, keyboard ) =
                 direction =
                     Keyboard.arrows kybrd
 
-                updatedUser =
+                user2 =
                     Body.move model direction
             in
-                ( ( updatedUser, [], keyboard ), keyboardCmd )
+                ( ( user2, [], keyboard ), keyboardCmd )
+
+
+childFromModel : Model -> Body Bodies.Meta
+childFromModel model =
+    { pos = model.pos
+    , velocity = model.velocity
+    , inverseMass = model.inverseMass
+    , restitution = model.restitution
+    , shape = model.shape
+    , color = model.color
+    , meta =
+        { eaten = False
+        , isFood = False
+        }
+    }
 
 
 type alias Food a =
@@ -150,7 +154,7 @@ collideWithBody user body =
 {-| collideWithBodies: collide user with list of body
 -}
 collideWithBodies : Model -> List (Body (Food a)) -> ( Model, List (Body (Food a)) )
-collideWithBodies user0 bodies0 =
+collideWithBodies model bodies0 =
     let
         ( user1, bodies1 ) =
             List.foldl
@@ -161,7 +165,7 @@ collideWithBodies user0 bodies0 =
                     in
                         ( u2, b2 :: bs )
                 )
-                ( user0, [] )
+                ( model, [] )
                 bodies0
     in
         ( user1, bodies1 )
@@ -172,17 +176,17 @@ collideWithBodies user0 bodies0 =
 
 
 view : Model -> Form
-view model =
+view user =
     let
         veloLine =
-            segment ( 0, 0 ) (mul2 model.velocity 5) |> traced (solid red)
+            segment ( 0, 0 ) (mul2 user.velocity 5) |> traced (solid red)
 
         ready =
-            case model.shape of
+            case user.shape of
                 Bubble radius ->
                     group
                         [ circle radius
-                            |> filled model.color
+                            |> filled user.color
                           -- , veloLine
                         ]
 
@@ -192,10 +196,10 @@ view model =
                             extents
                     in
                         group
-                            [ rect (w * 2) (h * 2) |> filled model.color
+                            [ rect (w * 2) (h * 2) |> filled user.color
                             ]
     in
-        Collage.move model.pos ready
+        Collage.move user.pos ready
 
 
 

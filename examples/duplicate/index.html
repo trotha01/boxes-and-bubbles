@@ -11967,6 +11967,9 @@ var _jastice$boxes_and_bubbles$Bodies$boxColor = _elm_lang$core$Color$lightBlue;
 var _jastice$boxes_and_bubbles$Bodies$bColor = A3(_elm_lang$core$Color$rgb, 238, 130, 238);
 var _jastice$boxes_and_bubbles$Bodies$food = {isFood: true, eaten: false};
 var _jastice$boxes_and_bubbles$Bodies$meta = {isFood: false, eaten: false};
+var _jastice$boxes_and_bubbles$Bodies$circArea = function (r) {
+	return (_elm_lang$core$Basics$pi * r) * r;
+};
 var _jastice$boxes_and_bubbles$Bodies$e0 = 0.8;
 var _jastice$boxes_and_bubbles$Bodies$randBubbles = function (meta) {
 	return A2(
@@ -12088,9 +12091,6 @@ var _jastice$boxes_and_bubbles$Bodies$drawBody = function (model) {
 };
 var _jastice$boxes_and_bubbles$Bodies$view = function (model) {
 	return A2(_elm_lang$core$List$map, _jastice$boxes_and_bubbles$Bodies$drawBody, model);
-};
-var _jastice$boxes_and_bubbles$Bodies$circArea = function (r) {
-	return (_elm_lang$core$Basics$pi * r) * r;
 };
 var _jastice$boxes_and_bubbles$Bodies$combineShapes = F2(
 	function (a0, b0) {
@@ -12989,16 +12989,16 @@ var _jastice$boxes_and_bubbles$User$noGravity = function (t) {
 		_1: {ctor: '_Tuple2', _0: 0, _1: 0}
 	};
 };
-var _jastice$boxes_and_bubbles$User$view = function (model) {
+var _jastice$boxes_and_bubbles$User$view = function (user) {
 	var ready = function () {
-		var _p0 = model.shape;
+		var _p0 = user.shape;
 		if (_p0.ctor === 'Bubble') {
 			return _evancz$elm_graphics$Collage$group(
 				_elm_lang$core$Native_List.fromArray(
 					[
 						A2(
 						_evancz$elm_graphics$Collage$filled,
-						model.color,
+						user.color,
 						_evancz$elm_graphics$Collage$circle(_p0._0))
 					]));
 		} else {
@@ -13010,7 +13010,7 @@ var _jastice$boxes_and_bubbles$User$view = function (model) {
 					[
 						A2(
 						_evancz$elm_graphics$Collage$filled,
-						model.color,
+						user.color,
 						A2(_evancz$elm_graphics$Collage$rect, w * 2, h * 2))
 					]));
 		}
@@ -13021,8 +13021,8 @@ var _jastice$boxes_and_bubbles$User$view = function (model) {
 		A2(
 			_evancz$elm_graphics$Collage$segment,
 			{ctor: '_Tuple2', _0: 0, _1: 0},
-			A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Math2D$mul2, model.velocity, 5)));
-	return A2(_evancz$elm_graphics$Collage$move, model.pos, ready);
+			A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Math2D$mul2, user.velocity, 5)));
+	return A2(_evancz$elm_graphics$Collage$move, user.pos, ready);
 };
 var _jastice$boxes_and_bubbles$User$swallow = function (food) {
 	var meta = food.meta;
@@ -13078,7 +13078,7 @@ var _jastice$boxes_and_bubbles$User$collideWithBody = F2(
 		return {ctor: '_Tuple2', _0: user1, _1: body1};
 	});
 var _jastice$boxes_and_bubbles$User$collideWithBodies = F2(
-	function (user0, bodies0) {
+	function (model, bodies0) {
 		var _p6 = A3(
 			_elm_lang$core$List$foldl,
 			F2(
@@ -13095,7 +13095,7 @@ var _jastice$boxes_and_bubbles$User$collideWithBodies = F2(
 				}),
 			{
 				ctor: '_Tuple2',
-				_0: user0,
+				_0: model,
 				_1: _elm_lang$core$Native_List.fromArray(
 					[])
 			},
@@ -13104,6 +13104,17 @@ var _jastice$boxes_and_bubbles$User$collideWithBodies = F2(
 		var bodies1 = _p6._1;
 		return {ctor: '_Tuple2', _0: user1, _1: bodies1};
 	});
+var _jastice$boxes_and_bubbles$User$childFromModel = function (model) {
+	return {
+		pos: model.pos,
+		velocity: model.velocity,
+		inverseMass: model.inverseMass,
+		restitution: model.restitution,
+		shape: model.shape,
+		color: model.color,
+		meta: {eaten: false, isFood: false}
+	};
+};
 var _jastice$boxes_and_bubbles$User$update = F2(
 	function (msg, _p10) {
 		var _p11 = _p10;
@@ -13112,25 +13123,21 @@ var _jastice$boxes_and_bubbles$User$update = F2(
 		var _p12 = msg;
 		switch (_p12.ctor) {
 			case 'MakeChild':
-				var children = _elm_lang$core$Native_List.fromArray(
-					[
-						{
-						pos: _p15.pos,
-						velocity: _p15.velocity,
-						inverseMass: _p15.inverseMass,
-						restitution: _p15.restitution,
-						shape: _p15.shape,
-						color: _p15.color,
-						meta: {eaten: false, isFood: false}
-					}
-					]);
 				return {
 					ctor: '_Tuple2',
-					_0: {ctor: '_Tuple3', _0: _p15, _1: children, _2: _p14},
+					_0: {
+						ctor: '_Tuple3',
+						_0: _p15,
+						_1: _elm_lang$core$Native_List.fromArray(
+							[
+								_jastice$boxes_and_bubbles$User$childFromModel(_p15)
+							]),
+						_2: _p14
+					},
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'Tick':
-				var model2 = A3(
+				var user2 = A3(
 					_elm_lang$core$Basics$uncurry,
 					_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$update,
 					_jastice$boxes_and_bubbles$User$noGravity(_p12._0),
@@ -13139,7 +13146,7 @@ var _jastice$boxes_and_bubbles$User$update = F2(
 					ctor: '_Tuple2',
 					_0: {
 						ctor: '_Tuple3',
-						_0: model2,
+						_0: user2,
 						_1: _elm_lang$core$Native_List.fromArray(
 							[]),
 						_2: _p14
@@ -13151,12 +13158,12 @@ var _jastice$boxes_and_bubbles$User$update = F2(
 				var kybrd = _p13._0;
 				var keyboardCmd = _p13._1;
 				var direction = _ohanhi$keyboard_extra$Keyboard_Extra$arrows(kybrd);
-				var updatedUser = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Body$move, _p15, direction);
+				var user2 = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Body$move, _p15, direction);
 				return {
 					ctor: '_Tuple2',
 					_0: {
 						ctor: '_Tuple3',
-						_0: updatedUser,
+						_0: user2,
 						_1: _elm_lang$core$Native_List.fromArray(
 							[]),
 						_2: _p14
