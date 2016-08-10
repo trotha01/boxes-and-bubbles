@@ -63,7 +63,6 @@ update msg ( model, keyboard ) =
                     , meta =
                       { eaten = False
                       , isFood = False
-                      , dir = (0,0)
                       }
                     }]
           in ( ( model, children, keyboard ), Cmd.none )

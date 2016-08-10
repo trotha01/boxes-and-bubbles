@@ -13,51 +13,12 @@ import Random
 type alias Model meta =
     List (Body meta)
 
--- todo: simplify this meta type
 type alias Meta =
     { isFood: Bool
     , eaten : Bool
-    , dir: BoxesAndBubbles.Math2D.Vec2 
     }
 
-meta : Meta
-meta = Meta False False (0,0)
-
-init : Model Meta
-init = 
-    someBodies
-
-
-(bubbleCount, boxCount) = (20,10)
-bColor : Color
-bColor = rgb 238 130 238 
-
-boxColor : Color
-boxColor = lightBlue
-
-randBubbles : Random.Generator (List (Body Meta))
-randBubbles =
-    Random.list bubbleCount (randBubble bColor e0 (-200,200) (-3,3) meta)
-
-randBoxes : Random.Generator (List (Body Meta))
-randBoxes =
-    Random.list boxCount (randBox boxColor e0 (-200,200) (10, 30) meta)
-
-randBody : Random.Generator (Body Meta)
-randBody =
-    Random.bool `Random.andThen` (\coin ->
-                if coin
-                then randBubble bColor e0 (-200,200) (-3,3) meta
-                else randBox boxColor e0 (-200,200) (5, 30) meta)
-
-someBodies : List (Body Meta)
-someBodies =
-    let (bubbles, seed2) =
-            Random.step randBubbles (Random.initialSeed 2)
-        (boxes, seed3) =
-            Random.step randBoxes seed2
-        in bubbles
-        ++ boxes
+init = someBodies
 
 
 -- UPDATE
@@ -170,3 +131,74 @@ noGravity t = ( ( 0, 0.0 ), ( 0, 0 ) )
 e0 : Float
 e0 =
     0.8
+
+
+-- meta : (Meta a)
+meta =
+  { isFood= False
+  , eaten = False
+  }
+
+food =
+  { isFood= True
+  , eaten = False
+  }
+
+
+bColor : Color
+bColor =
+    rgb 238 130 238
+
+
+boxColor : Color
+boxColor =
+    lightBlue
+
+
+( bubbleCount, boxCount ) =
+    ( 20, 10 )
+randBubbles : a -> Random.Generator (List (Body a))
+randBubbles meta =
+    Random.list bubbleCount (randBubble bColor e0 ( -200, 200 ) ( -3, 3 ) meta)
+
+
+randBoxes : a -> Random.Generator (List (Body a))
+randBoxes meta =
+    Random.list boxCount (randBox boxColor e0 ( -200, 200 ) ( 10, 30 ) meta)
+
+
+randBody : Random.Generator (Body Meta)
+randBody =
+    Random.bool
+        `Random.andThen` (\coin ->
+                            if coin then
+                                randBubble bColor e0 ( -200, 200 ) ( -3, 3 ) food
+                            else
+                                randBox boxColor e0 ( 10, 50 ) ( 10, 50 ) meta
+                         )
+
+
+someBodies : List (Body Meta)
+someBodies =
+    let
+        ( bubbles, seed2 ) =
+            Random.step (randBubbles food) (Random.initialSeed 2)
+
+        ( boxes, seed3 ) =
+            Random.step (randBoxes meta) seed2
+    in
+        (bubbles ++ boxes)
+
+
+{-| regenerate is used when a body has reached the bounds
+it regenerates a new body at the opposite end
+-}
+regenerate : Random.Seed -> Body Meta -> ( Body Meta, Random.Seed )
+regenerate seed body =
+    let
+        ( newBody, seed' ) =
+            (Random.step (randBody) seed)
+    in
+        ( { newBody | pos = mul2 body.pos (-15 / 16), velocity = plus ( 0, 0.2 ) (mul2 body.velocity (1 / 2)) }
+        , seed'
+        )

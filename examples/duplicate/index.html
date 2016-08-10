@@ -11960,7 +11960,90 @@ var _jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble = F5(
 			radius,
 			density);
 	});
+var _jastice$boxes_and_bubbles$Bodies$_p0 = {ctor: '_Tuple2', _0: 20, _1: 10};
+var _jastice$boxes_and_bubbles$Bodies$bubbleCount = _jastice$boxes_and_bubbles$Bodies$_p0._0;
+var _jastice$boxes_and_bubbles$Bodies$boxCount = _jastice$boxes_and_bubbles$Bodies$_p0._1;
+var _jastice$boxes_and_bubbles$Bodies$boxColor = _elm_lang$core$Color$lightBlue;
+var _jastice$boxes_and_bubbles$Bodies$bColor = A3(_elm_lang$core$Color$rgb, 238, 130, 238);
+var _jastice$boxes_and_bubbles$Bodies$food = {isFood: true, eaten: false};
+var _jastice$boxes_and_bubbles$Bodies$meta = {isFood: false, eaten: false};
 var _jastice$boxes_and_bubbles$Bodies$e0 = 0.8;
+var _jastice$boxes_and_bubbles$Bodies$randBubbles = function (meta) {
+	return A2(
+		_elm_lang$core$Random$list,
+		_jastice$boxes_and_bubbles$Bodies$bubbleCount,
+		A5(
+			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble,
+			_jastice$boxes_and_bubbles$Bodies$bColor,
+			_jastice$boxes_and_bubbles$Bodies$e0,
+			{ctor: '_Tuple2', _0: -200, _1: 200},
+			{ctor: '_Tuple2', _0: -3, _1: 3},
+			meta));
+};
+var _jastice$boxes_and_bubbles$Bodies$randBoxes = function (meta) {
+	return A2(
+		_elm_lang$core$Random$list,
+		_jastice$boxes_and_bubbles$Bodies$boxCount,
+		A5(
+			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBox,
+			_jastice$boxes_and_bubbles$Bodies$boxColor,
+			_jastice$boxes_and_bubbles$Bodies$e0,
+			{ctor: '_Tuple2', _0: -200, _1: 200},
+			{ctor: '_Tuple2', _0: 10, _1: 30},
+			meta));
+};
+var _jastice$boxes_and_bubbles$Bodies$someBodies = function () {
+	var _p1 = A2(
+		_elm_lang$core$Random$step,
+		_jastice$boxes_and_bubbles$Bodies$randBubbles(_jastice$boxes_and_bubbles$Bodies$food),
+		_elm_lang$core$Random$initialSeed(2));
+	var bubbles = _p1._0;
+	var seed2 = _p1._1;
+	var _p2 = A2(
+		_elm_lang$core$Random$step,
+		_jastice$boxes_and_bubbles$Bodies$randBoxes(_jastice$boxes_and_bubbles$Bodies$meta),
+		seed2);
+	var boxes = _p2._0;
+	var seed3 = _p2._1;
+	return A2(_elm_lang$core$Basics_ops['++'], bubbles, boxes);
+}();
+var _jastice$boxes_and_bubbles$Bodies$randBody = A2(
+	_elm_lang$core$Random$andThen,
+	_elm_lang$core$Random$bool,
+	function (coin) {
+		return coin ? A5(
+			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble,
+			_jastice$boxes_and_bubbles$Bodies$bColor,
+			_jastice$boxes_and_bubbles$Bodies$e0,
+			{ctor: '_Tuple2', _0: -200, _1: 200},
+			{ctor: '_Tuple2', _0: -3, _1: 3},
+			_jastice$boxes_and_bubbles$Bodies$food) : A5(
+			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBox,
+			_jastice$boxes_and_bubbles$Bodies$boxColor,
+			_jastice$boxes_and_bubbles$Bodies$e0,
+			{ctor: '_Tuple2', _0: 10, _1: 50},
+			{ctor: '_Tuple2', _0: 10, _1: 50},
+			_jastice$boxes_and_bubbles$Bodies$meta);
+	});
+var _jastice$boxes_and_bubbles$Bodies$regenerate = F2(
+	function (seed, body) {
+		var _p3 = A2(_elm_lang$core$Random$step, _jastice$boxes_and_bubbles$Bodies$randBody, seed);
+		var newBody = _p3._0;
+		var seed$ = _p3._1;
+		return {
+			ctor: '_Tuple2',
+			_0: _elm_lang$core$Native_Utils.update(
+				newBody,
+				{
+					pos: A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Math2D$mul2, body.pos, -15 / 16),
+					velocity: A2(
+						_jastice$boxes_and_bubbles$BoxesAndBubbles_Math2D$plus,
+						{ctor: '_Tuple2', _0: 0, _1: 0.2},
+						A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Math2D$mul2, body.velocity, 1 / 2))
+				}),
+			_1: seed$
+		};
+	});
 var _jastice$boxes_and_bubbles$Bodies$noGravity = function (t) {
 	return {
 		ctor: '_Tuple2',
@@ -11970,20 +12053,20 @@ var _jastice$boxes_and_bubbles$Bodies$noGravity = function (t) {
 };
 var _jastice$boxes_and_bubbles$Bodies$drawBody = function (model) {
 	var ready = function () {
-		var _p0 = model.shape;
-		if (_p0.ctor === 'Bubble') {
+		var _p4 = model.shape;
+		if (_p4.ctor === 'Bubble') {
 			return _evancz$elm_graphics$Collage$group(
 				_elm_lang$core$Native_List.fromArray(
 					[
 						A2(
 						_evancz$elm_graphics$Collage$filled,
 						model.color,
-						_evancz$elm_graphics$Collage$circle(_p0._0))
+						_evancz$elm_graphics$Collage$circle(_p4._0))
 					]));
 		} else {
-			var _p1 = _p0._0;
-			var w = _p1._0;
-			var h = _p1._1;
+			var _p5 = _p4._0;
+			var w = _p5._0;
+			var h = _p5._1;
 			return _evancz$elm_graphics$Collage$group(
 				_elm_lang$core$Native_List.fromArray(
 					[
@@ -12009,78 +12092,13 @@ var _jastice$boxes_and_bubbles$Bodies$view = function (model) {
 var _jastice$boxes_and_bubbles$Bodies$circArea = function (r) {
 	return (_elm_lang$core$Basics$pi * r) * r;
 };
-var _jastice$boxes_and_bubbles$Bodies$boxColor = _elm_lang$core$Color$lightBlue;
-var _jastice$boxes_and_bubbles$Bodies$bColor = A3(_elm_lang$core$Color$rgb, 238, 130, 238);
-var _jastice$boxes_and_bubbles$Bodies$_p2 = {ctor: '_Tuple2', _0: 20, _1: 10};
-var _jastice$boxes_and_bubbles$Bodies$bubbleCount = _jastice$boxes_and_bubbles$Bodies$_p2._0;
-var _jastice$boxes_and_bubbles$Bodies$boxCount = _jastice$boxes_and_bubbles$Bodies$_p2._1;
-var _jastice$boxes_and_bubbles$Bodies$Meta = F3(
-	function (a, b, c) {
-		return {isFood: a, eaten: b, dir: c};
-	});
-var _jastice$boxes_and_bubbles$Bodies$meta = A3(
-	_jastice$boxes_and_bubbles$Bodies$Meta,
-	false,
-	false,
-	{ctor: '_Tuple2', _0: 0, _1: 0});
-var _jastice$boxes_and_bubbles$Bodies$randBubbles = A2(
-	_elm_lang$core$Random$list,
-	_jastice$boxes_and_bubbles$Bodies$bubbleCount,
-	A5(
-		_jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble,
-		_jastice$boxes_and_bubbles$Bodies$bColor,
-		_jastice$boxes_and_bubbles$Bodies$e0,
-		{ctor: '_Tuple2', _0: -200, _1: 200},
-		{ctor: '_Tuple2', _0: -3, _1: 3},
-		_jastice$boxes_and_bubbles$Bodies$meta));
-var _jastice$boxes_and_bubbles$Bodies$randBoxes = A2(
-	_elm_lang$core$Random$list,
-	_jastice$boxes_and_bubbles$Bodies$boxCount,
-	A5(
-		_jastice$boxes_and_bubbles$BoxesAndBubbles$randBox,
-		_jastice$boxes_and_bubbles$Bodies$boxColor,
-		_jastice$boxes_and_bubbles$Bodies$e0,
-		{ctor: '_Tuple2', _0: -200, _1: 200},
-		{ctor: '_Tuple2', _0: 10, _1: 30},
-		_jastice$boxes_and_bubbles$Bodies$meta));
-var _jastice$boxes_and_bubbles$Bodies$someBodies = function () {
-	var _p3 = A2(
-		_elm_lang$core$Random$step,
-		_jastice$boxes_and_bubbles$Bodies$randBubbles,
-		_elm_lang$core$Random$initialSeed(2));
-	var bubbles = _p3._0;
-	var seed2 = _p3._1;
-	var _p4 = A2(_elm_lang$core$Random$step, _jastice$boxes_and_bubbles$Bodies$randBoxes, seed2);
-	var boxes = _p4._0;
-	var seed3 = _p4._1;
-	return A2(_elm_lang$core$Basics_ops['++'], bubbles, boxes);
-}();
-var _jastice$boxes_and_bubbles$Bodies$init = _jastice$boxes_and_bubbles$Bodies$someBodies;
-var _jastice$boxes_and_bubbles$Bodies$randBody = A2(
-	_elm_lang$core$Random$andThen,
-	_elm_lang$core$Random$bool,
-	function (coin) {
-		return coin ? A5(
-			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble,
-			_jastice$boxes_and_bubbles$Bodies$bColor,
-			_jastice$boxes_and_bubbles$Bodies$e0,
-			{ctor: '_Tuple2', _0: -200, _1: 200},
-			{ctor: '_Tuple2', _0: -3, _1: 3},
-			_jastice$boxes_and_bubbles$Bodies$meta) : A5(
-			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBox,
-			_jastice$boxes_and_bubbles$Bodies$boxColor,
-			_jastice$boxes_and_bubbles$Bodies$e0,
-			{ctor: '_Tuple2', _0: -200, _1: 200},
-			{ctor: '_Tuple2', _0: 5, _1: 30},
-			_jastice$boxes_and_bubbles$Bodies$meta);
-	});
 var _jastice$boxes_and_bubbles$Bodies$combineShapes = F2(
 	function (a0, b0) {
 		var combined = function () {
-			var _p5 = {ctor: '_Tuple2', _0: a0.shape, _1: b0.shape};
-			if (((_p5.ctor === '_Tuple2') && (_p5._0.ctor === 'Bubble')) && (_p5._1.ctor === 'Bubble')) {
-				var a2 = _jastice$boxes_and_bubbles$Bodies$circArea(_p5._1._0);
-				var a1 = _jastice$boxes_and_bubbles$Bodies$circArea(_p5._0._0);
+			var _p6 = {ctor: '_Tuple2', _0: a0.shape, _1: b0.shape};
+			if (((_p6.ctor === '_Tuple2') && (_p6._0.ctor === 'Bubble')) && (_p6._1.ctor === 'Bubble')) {
+				var a2 = _jastice$boxes_and_bubbles$Bodies$circArea(_p6._1._0);
+				var a1 = _jastice$boxes_and_bubbles$Bodies$circArea(_p6._0._0);
 				var boxSide = _elm_lang$core$Basics$sqrt((a1 + a2) / 2);
 				return _elm_lang$core$Native_Utils.update(
 					a0,
@@ -12106,82 +12124,87 @@ var _jastice$boxes_and_bubbles$Bodies$combineShapes = F2(
 					{isFood: false})
 			});
 	});
+var _jastice$boxes_and_bubbles$Bodies$init = _jastice$boxes_and_bubbles$Bodies$someBodies;
+var _jastice$boxes_and_bubbles$Bodies$Meta = F2(
+	function (a, b) {
+		return {isFood: a, eaten: b};
+	});
 var _jastice$boxes_and_bubbles$Bodies$Points = function (a) {
 	return {ctor: 'Points', _0: a};
 };
 var _jastice$boxes_and_bubbles$Bodies$collideBodyWith = F4(
-	function (dt, a0, bodies, _p6) {
+	function (dt, a0, bodies, _p7) {
 		collideBodyWith:
 		while (true) {
-			var _p7 = _p6;
-			var _p13 = _p7._1;
-			var _p12 = _p7._0;
-			var _p8 = bodies;
-			if (_p8.ctor === '[]') {
+			var _p8 = _p7;
+			var _p14 = _p8._1;
+			var _p13 = _p8._0;
+			var _p9 = bodies;
+			if (_p9.ctor === '[]') {
 				return {
 					ctor: '_Tuple2',
-					_0: A2(_elm_lang$core$List_ops['::'], a0, _p12),
-					_1: _p13
+					_0: A2(_elm_lang$core$List_ops['::'], a0, _p13),
+					_1: _p14
 				};
 			} else {
-				var _p11 = _p8._1;
-				var _p10 = _p8._0;
-				var collisionResult = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$collision, a0, _p10);
-				if ((_elm_lang$core$Native_Utils.cmp(collisionResult.penetration, 0) > 0) && (_elm_lang$core$Native_Utils.eq(a0.meta.eaten, true) && _elm_lang$core$Native_Utils.eq(_p10.meta.eaten, true))) {
-					var combined = A2(_jastice$boxes_and_bubbles$Bodies$combineShapes, a0, _p10);
+				var _p12 = _p9._1;
+				var _p11 = _p9._0;
+				var collisionResult = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$collision, a0, _p11);
+				if ((_elm_lang$core$Native_Utils.cmp(collisionResult.penetration, 0) > 0) && (_elm_lang$core$Native_Utils.eq(a0.meta.eaten, true) && _elm_lang$core$Native_Utils.eq(_p11.meta.eaten, true))) {
+					var combined = A2(_jastice$boxes_and_bubbles$Bodies$combineShapes, a0, _p11);
 					var _v4 = dt,
 						_v5 = combined,
-						_v6 = _p11,
+						_v6 = _p12,
 						_v7 = {
 						ctor: '_Tuple2',
-						_0: _p12,
+						_0: _p13,
 						_1: A2(
 							_elm_lang$core$List_ops['::'],
 							_jastice$boxes_and_bubbles$Bodies$Points(10),
-							_p13)
+							_p14)
 					};
 					dt = _v4;
 					a0 = _v5;
 					bodies = _v6;
-					_p6 = _v7;
+					_p7 = _v7;
 					continue collideBodyWith;
 				} else {
-					var _p9 = A3(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$resolveCollision, collisionResult, a0, _p10);
-					var a1 = _p9._0;
-					var b1 = _p9._1;
+					var _p10 = A3(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$resolveCollision, collisionResult, a0, _p11);
+					var a1 = _p10._0;
+					var b1 = _p10._1;
 					var _v8 = dt,
 						_v9 = a1,
-						_v10 = _p11,
+						_v10 = _p12,
 						_v11 = {
 						ctor: '_Tuple2',
-						_0: A2(_elm_lang$core$List_ops['::'], b1, _p12),
-						_1: _p13
+						_0: A2(_elm_lang$core$List_ops['::'], b1, _p13),
+						_1: _p14
 					};
 					dt = _v8;
 					a0 = _v9;
 					bodies = _v10;
-					_p6 = _v11;
+					_p7 = _v11;
 					continue collideBodyWith;
 				}
 			}
 		}
 	});
 var _jastice$boxes_and_bubbles$Bodies$collideBodiesAcc = F3(
-	function (dt, _p14, bodies) {
+	function (dt, _p15, bodies) {
 		collideBodiesAcc:
 		while (true) {
-			var _p15 = _p14;
-			var _p19 = _p15._1;
-			var _p18 = _p15._0;
-			var _p16 = bodies;
-			if (_p16.ctor === '[]') {
-				return {ctor: '_Tuple2', _0: _p18, _1: _p19};
+			var _p16 = _p15;
+			var _p20 = _p16._1;
+			var _p19 = _p16._0;
+			var _p17 = bodies;
+			if (_p17.ctor === '[]') {
+				return {ctor: '_Tuple2', _0: _p19, _1: _p20};
 			} else {
-				var _p17 = A4(
+				var _p18 = A4(
 					_jastice$boxes_and_bubbles$Bodies$collideBodyWith,
 					dt,
-					_p16._0,
-					_p16._1,
+					_p17._0,
+					_p17._1,
 					{
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_List.fromArray(
@@ -12189,23 +12212,23 @@ var _jastice$boxes_and_bubbles$Bodies$collideBodiesAcc = F3(
 						_1: _elm_lang$core$Native_List.fromArray(
 							[])
 					});
-				if (_p17._0.ctor === '[]') {
+				if (_p18._0.ctor === '[]') {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_List.fromArray(
 							[]),
-						_1: A2(_elm_lang$core$Basics_ops['++'], _p19, _p17._1)
+						_1: A2(_elm_lang$core$Basics_ops['++'], _p20, _p18._1)
 					};
 				} else {
 					var _v15 = dt,
 						_v16 = {
 						ctor: '_Tuple2',
-						_0: A2(_elm_lang$core$List_ops['::'], _p17._0._0, _p18),
-						_1: A2(_elm_lang$core$Basics_ops['++'], _p19, _p17._1)
+						_0: A2(_elm_lang$core$List_ops['::'], _p18._0._0, _p19),
+						_1: A2(_elm_lang$core$Basics_ops['++'], _p20, _p18._1)
 					},
-						_v17 = _p17._0._1;
+						_v17 = _p18._0._1;
 					dt = _v15;
-					_p14 = _v16;
+					_p15 = _v16;
 					bodies = _v17;
 					continue collideBodiesAcc;
 				}
@@ -12214,7 +12237,7 @@ var _jastice$boxes_and_bubbles$Bodies$collideBodiesAcc = F3(
 	});
 var _jastice$boxes_and_bubbles$Bodies$collideBodies = F2(
 	function (dt, model) {
-		var _p20 = A3(
+		var _p21 = A3(
 			_jastice$boxes_and_bubbles$Bodies$collideBodiesAcc,
 			dt,
 			{
@@ -12225,8 +12248,8 @@ var _jastice$boxes_and_bubbles$Bodies$collideBodies = F2(
 					[])
 			},
 			model);
-		var collidedBodies = _p20._0;
-		var msgs = _p20._1;
+		var collidedBodies = _p21._0;
+		var msgs = _p21._1;
 		var newBodies = A2(
 			_elm_lang$core$List$map,
 			A2(
@@ -12238,9 +12261,9 @@ var _jastice$boxes_and_bubbles$Bodies$collideBodies = F2(
 	});
 var _jastice$boxes_and_bubbles$Bodies$update = F2(
 	function (msg, model) {
-		var _p21 = msg;
-		if (_p21.ctor === 'Tick') {
-			return A2(_jastice$boxes_and_bubbles$Bodies$collideBodies, _p21._0, model);
+		var _p22 = msg;
+		if (_p22.ctor === 'Tick') {
+			return A2(_jastice$boxes_and_bubbles$Bodies$collideBodies, _p22._0, model);
 		} else {
 			return {
 				ctor: '_Tuple2',
@@ -13098,11 +13121,7 @@ var _jastice$boxes_and_bubbles$User$update = F2(
 						restitution: _p15.restitution,
 						shape: _p15.shape,
 						color: _p15.color,
-						meta: {
-							eaten: false,
-							isFood: false,
-							dir: {ctor: '_Tuple2', _0: 0, _1: 0}
-						}
+						meta: {eaten: false, isFood: false}
 					}
 					]);
 				return {
@@ -13270,41 +13289,12 @@ var _jastice$boxes_and_bubbles$Duplicate$noGravity = function (t) {
 };
 var _jastice$boxes_and_bubbles$Duplicate$e0 = 0.8;
 var _jastice$boxes_and_bubbles$Duplicate$inf = 1 / 0;
-var _jastice$boxes_and_bubbles$Duplicate$_p0 = {ctor: '_Tuple2', _0: 20, _1: 10};
-var _jastice$boxes_and_bubbles$Duplicate$bubbleCount = _jastice$boxes_and_bubbles$Duplicate$_p0._0;
-var _jastice$boxes_and_bubbles$Duplicate$boxCount = _jastice$boxes_and_bubbles$Duplicate$_p0._1;
-var _jastice$boxes_and_bubbles$Duplicate$boxColor = _elm_lang$core$Color$lightBlue;
-var _jastice$boxes_and_bubbles$Duplicate$randBoxes = function (meta) {
-	return A2(
-		_elm_lang$core$Random$list,
-		_jastice$boxes_and_bubbles$Duplicate$boxCount,
-		A5(
-			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBox,
-			_jastice$boxes_and_bubbles$Duplicate$boxColor,
-			_jastice$boxes_and_bubbles$Duplicate$e0,
-			{ctor: '_Tuple2', _0: -200, _1: 200},
-			{ctor: '_Tuple2', _0: 10, _1: 30},
-			meta));
-};
-var _jastice$boxes_and_bubbles$Duplicate$bColor = A3(_elm_lang$core$Color$rgb, 238, 130, 238);
-var _jastice$boxes_and_bubbles$Duplicate$randBubbles = function (meta) {
-	return A2(
-		_elm_lang$core$Random$list,
-		_jastice$boxes_and_bubbles$Duplicate$bubbleCount,
-		A5(
-			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble,
-			_jastice$boxes_and_bubbles$Duplicate$bColor,
-			_jastice$boxes_and_bubbles$Duplicate$e0,
-			{ctor: '_Tuple2', _0: -200, _1: 200},
-			{ctor: '_Tuple2', _0: -3, _1: 3},
-			meta));
-};
-var _jastice$boxes_and_bubbles$Duplicate$_p1 = {ctor: '_Tuple2', _0: 700, _1: 700};
-var _jastice$boxes_and_bubbles$Duplicate$height = _jastice$boxes_and_bubbles$Duplicate$_p1._0;
-var _jastice$boxes_and_bubbles$Duplicate$width = _jastice$boxes_and_bubbles$Duplicate$_p1._1;
-var _jastice$boxes_and_bubbles$Duplicate$_p2 = {ctor: '_Tuple2', _0: _jastice$boxes_and_bubbles$Duplicate$height / 2, _1: _jastice$boxes_and_bubbles$Duplicate$width / 2};
-var _jastice$boxes_and_bubbles$Duplicate$halfHeight = _jastice$boxes_and_bubbles$Duplicate$_p2._0;
-var _jastice$boxes_and_bubbles$Duplicate$halfWidth = _jastice$boxes_and_bubbles$Duplicate$_p2._1;
+var _jastice$boxes_and_bubbles$Duplicate$_p0 = {ctor: '_Tuple2', _0: 700, _1: 700};
+var _jastice$boxes_and_bubbles$Duplicate$height = _jastice$boxes_and_bubbles$Duplicate$_p0._0;
+var _jastice$boxes_and_bubbles$Duplicate$width = _jastice$boxes_and_bubbles$Duplicate$_p0._1;
+var _jastice$boxes_and_bubbles$Duplicate$_p1 = {ctor: '_Tuple2', _0: _jastice$boxes_and_bubbles$Duplicate$height / 2, _1: _jastice$boxes_and_bubbles$Duplicate$width / 2};
+var _jastice$boxes_and_bubbles$Duplicate$halfHeight = _jastice$boxes_and_bubbles$Duplicate$_p1._0;
+var _jastice$boxes_and_bubbles$Duplicate$halfWidth = _jastice$boxes_and_bubbles$Duplicate$_p1._1;
 var _jastice$boxes_and_bubbles$Duplicate$points = function (model) {
 	return _elm_lang$core$Native_List.fromArray(
 		[
@@ -13316,9 +13306,9 @@ var _jastice$boxes_and_bubbles$Duplicate$points = function (model) {
 					_elm_lang$core$Basics$toString(model.points))))
 		]);
 };
-var _jastice$boxes_and_bubbles$Duplicate$scene = function (_p3) {
-	var _p4 = _p3;
-	var _p5 = _p4._0;
+var _jastice$boxes_and_bubbles$Duplicate$scene = function (_p2) {
+	var _p3 = _p2;
+	var _p4 = _p3._0;
 	return A3(
 		_evancz$elm_graphics$Collage$collage,
 		_jastice$boxes_and_bubbles$Duplicate$width,
@@ -13327,80 +13317,18 @@ var _jastice$boxes_and_bubbles$Duplicate$scene = function (_p3) {
 			_elm_lang$core$Basics_ops['++'],
 			A2(
 				_elm_lang$core$List_ops['::'],
-				_jastice$boxes_and_bubbles$User$view(_p5.user),
+				_jastice$boxes_and_bubbles$User$view(_p4.user),
 				A2(
 					_elm_lang$core$Basics_ops['++'],
 					A2(
 						_elm_lang$core$Basics_ops['++'],
-						_jastice$boxes_and_bubbles$Bodies$view(_p5.bodies),
-						_jastice$boxes_and_bubbles$Bodies$view(_p5.children)),
-					_jastice$boxes_and_bubbles$Wall$view(_p5.walls))),
-			_jastice$boxes_and_bubbles$Duplicate$points(_p5)));
+						_jastice$boxes_and_bubbles$Bodies$view(_p4.bodies),
+						_jastice$boxes_and_bubbles$Bodies$view(_p4.children)),
+					_jastice$boxes_and_bubbles$Wall$view(_p4.walls))),
+			_jastice$boxes_and_bubbles$Duplicate$points(_p4)));
 };
-var _jastice$boxes_and_bubbles$Duplicate$food = {
-	isFood: true,
-	eaten: false,
-	dir: {ctor: '_Tuple2', _0: 0, _1: 0}
-};
-var _jastice$boxes_and_bubbles$Duplicate$someBodies = function (meta) {
-	var _p6 = A2(
-		_elm_lang$core$Random$step,
-		_jastice$boxes_and_bubbles$Duplicate$randBubbles(_jastice$boxes_and_bubbles$Duplicate$food),
-		_elm_lang$core$Random$initialSeed(2));
-	var bubbles = _p6._0;
-	var seed2 = _p6._1;
-	var _p7 = A2(
-		_elm_lang$core$Random$step,
-		_jastice$boxes_and_bubbles$Duplicate$randBoxes(meta),
-		seed2);
-	var boxes = _p7._0;
-	var seed3 = _p7._1;
-	return A2(_elm_lang$core$Basics_ops['++'], bubbles, boxes);
-};
-var _jastice$boxes_and_bubbles$Duplicate$meta = {
-	isFood: false,
-	eaten: false,
-	dir: {ctor: '_Tuple2', _0: 0, _1: 0}
-};
-var _jastice$boxes_and_bubbles$Duplicate$randBody = A2(
-	_elm_lang$core$Random$andThen,
-	_elm_lang$core$Random$bool,
-	function (coin) {
-		return coin ? A5(
-			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble,
-			_jastice$boxes_and_bubbles$Duplicate$bColor,
-			_jastice$boxes_and_bubbles$Duplicate$e0,
-			{ctor: '_Tuple2', _0: -200, _1: 200},
-			{ctor: '_Tuple2', _0: -3, _1: 3},
-			_jastice$boxes_and_bubbles$Duplicate$food) : A5(
-			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBox,
-			_jastice$boxes_and_bubbles$Duplicate$boxColor,
-			_jastice$boxes_and_bubbles$Duplicate$e0,
-			{ctor: '_Tuple2', _0: 10, _1: 50},
-			{ctor: '_Tuple2', _0: 10, _1: 50},
-			_jastice$boxes_and_bubbles$Duplicate$meta);
-	});
-var _jastice$boxes_and_bubbles$Duplicate$regenerate = F3(
-	function (seed, meta, body) {
-		var _p8 = A2(_elm_lang$core$Random$step, _jastice$boxes_and_bubbles$Duplicate$randBody, seed);
-		var newBody = _p8._0;
-		var seed$ = _p8._1;
-		return {
-			ctor: '_Tuple2',
-			_0: _elm_lang$core$Native_Utils.update(
-				newBody,
-				{
-					pos: A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Math2D$mul2, body.pos, -15 / 16),
-					velocity: A2(
-						_jastice$boxes_and_bubbles$BoxesAndBubbles_Math2D$plus,
-						{ctor: '_Tuple2', _0: 0, _1: 0.2},
-						A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Math2D$mul2, body.velocity, 1 / 2))
-				}),
-			_1: seed$
-		};
-	});
 var _jastice$boxes_and_bubbles$Duplicate$initialModel = {
-	bodies: _jastice$boxes_and_bubbles$Duplicate$someBodies(_jastice$boxes_and_bubbles$Duplicate$meta),
+	bodies: _jastice$boxes_and_bubbles$Bodies$init,
 	user: _jastice$boxes_and_bubbles$User$init,
 	children: _elm_lang$core$Native_List.fromArray(
 		[]),
@@ -13426,23 +13354,23 @@ var _jastice$boxes_and_bubbles$Duplicate$Points = function (a) {
 	return {ctor: 'Points', _0: a};
 };
 var _jastice$boxes_and_bubbles$Duplicate$update = F2(
-	function (msg, _p9) {
+	function (msg, _p5) {
 		update:
 		while (true) {
-			var _p10 = _p9;
-			var _p33 = _p10._0;
-			var _p32 = _p10._1;
-			var _p11 = msg;
-			switch (_p11.ctor) {
+			var _p6 = _p5;
+			var _p29 = _p6._0;
+			var _p28 = _p6._1;
+			var _p7 = msg;
+			switch (_p7.ctor) {
 				case 'Points':
 					var model2 = _elm_lang$core$Native_Utils.update(
-						_p33,
-						{points: _p33.points + _p11._0});
-					var _p12 = A2(
+						_p29,
+						{points: _p29.points + _p7._0});
+					var _p8 = A2(
 						_jastice$boxes_and_bubbles$User$update,
 						_jastice$boxes_and_bubbles$User$MakeChild,
-						{ctor: '_Tuple2', _0: _p33.user, _1: _p32});
-					var children = _p12._0._1;
+						{ctor: '_Tuple2', _0: _p29.user, _1: _p28});
+					var children = _p8._0._1;
 					var model3 = ((!_elm_lang$core$Native_Utils.eq(model2.points, 0)) && _elm_lang$core$Native_Utils.eq(
 						A2(_elm_lang$core$Basics_ops['%'], model2.points, 100),
 						0)) ? _elm_lang$core$Native_Utils.update(
@@ -13452,77 +13380,77 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 						}) : model2;
 					return {
 						ctor: '_Tuple2',
-						_0: {ctor: '_Tuple2', _0: model3, _1: _p32},
+						_0: {ctor: '_Tuple2', _0: model3, _1: _p28},
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				case 'Tick':
-					var _p28 = _p11._0;
-					var _p13 = A2(
+					var _p24 = _p7._0;
+					var _p9 = A2(
 						_jastice$boxes_and_bubbles$User$update,
-						_jastice$boxes_and_bubbles$User$Tick(_p28),
-						{ctor: '_Tuple2', _0: _p33.user, _1: _p32});
-					var user1 = _p13._0._0;
-					var children = _p13._0._1;
-					var _p14 = A2(_jastice$boxes_and_bubbles$User$collideWithBodies, user1, _p33.bodies);
-					var user2 = _p14._0;
-					var bodies2 = _p14._1;
-					var user4 = A2(_jastice$boxes_and_bubbles$Wall$collideWith, _p33.walls, user2);
-					var _p15 = A2(
+						_jastice$boxes_and_bubbles$User$Tick(_p24),
+						{ctor: '_Tuple2', _0: _p29.user, _1: _p28});
+					var user1 = _p9._0._0;
+					var children = _p9._0._1;
+					var _p10 = A2(_jastice$boxes_and_bubbles$User$collideWithBodies, user1, _p29.bodies);
+					var user2 = _p10._0;
+					var bodies2 = _p10._1;
+					var user4 = A2(_jastice$boxes_and_bubbles$Wall$collideWith, _p29.walls, user2);
+					var _p11 = A2(
 						_jastice$boxes_and_bubbles$Bodies$update,
-						_jastice$boxes_and_bubbles$Bodies$Tick(_p28),
+						_jastice$boxes_and_bubbles$Bodies$Tick(_p24),
 						bodies2);
-					var bodies3 = _p15._0;
-					var pointMsgs = _p15._1;
-					var _p16 = A2(_jastice$boxes_and_bubbles$Bound$collideWithBodies, _p33.bounds, bodies3);
-					var bodies4 = _p16._0;
-					var msgs$ = _p16._1;
-					var _p17 = A2(
+					var bodies3 = _p11._0;
+					var pointMsgs = _p11._1;
+					var _p12 = A2(_jastice$boxes_and_bubbles$Bound$collideWithBodies, _p29.bounds, bodies3);
+					var bodies4 = _p12._0;
+					var msgs$ = _p12._1;
+					var _p13 = A2(
 						_jastice$boxes_and_bubbles$Bodies$update,
-						_jastice$boxes_and_bubbles$Bodies$Tick(_p28),
-						A2(_elm_lang$core$Basics_ops['++'], _p33.children, children));
-					var children3 = _p17._0;
-					var _p18 = A2(_jastice$boxes_and_bubbles$Bound$collideWithBodies, _p33.bounds, children3);
-					var children4 = _p18._0;
+						_jastice$boxes_and_bubbles$Bodies$Tick(_p24),
+						A2(_elm_lang$core$Basics_ops['++'], _p29.children, children));
+					var children3 = _p13._0;
+					var _p14 = A2(_jastice$boxes_and_bubbles$Bound$collideWithBodies, _p29.bounds, children3);
+					var children4 = _p14._0;
 					var model2 = _elm_lang$core$Native_Utils.update(
-						_p33,
+						_p29,
 						{user: user4, bodies: bodies4, children: children4});
-					var _p19 = A3(
+					var _p15 = A3(
 						_elm_lang$core$List$foldl,
 						F2(
-							function (msg, _p20) {
-								var _p21 = _p20;
+							function (msg, _p16) {
+								var _p17 = _p16;
 								return A2(
 									_jastice$boxes_and_bubbles$Duplicate$update,
 									_jastice$boxes_and_bubbles$Duplicate$BoundMsg(msg),
-									{ctor: '_Tuple2', _0: _p21._0._0, _1: _p21._0._1});
+									{ctor: '_Tuple2', _0: _p17._0._0, _1: _p17._0._1});
 							}),
 						{
 							ctor: '_Tuple2',
-							_0: {ctor: '_Tuple2', _0: model2, _1: _p32},
+							_0: {ctor: '_Tuple2', _0: model2, _1: _p28},
 							_1: _elm_lang$core$Platform_Cmd$none
 						},
 						msgs$);
-					var model3 = _p19._0._0;
-					var keyboard2 = _p19._0._1;
-					var cmd2 = _p19._1;
-					var _p22 = A3(
+					var model3 = _p15._0._0;
+					var keyboard2 = _p15._0._1;
+					var cmd2 = _p15._1;
+					var _p18 = A3(
 						_elm_lang$core$List$foldl,
 						F2(
-							function (msg, _p23) {
-								var _p24 = _p23;
-								var _p27 = _p24._0._0;
-								var _p26 = _p24._0._1;
-								var _p25 = msg;
-								if (_p25.ctor === 'Points') {
+							function (msg, _p19) {
+								var _p20 = _p19;
+								var _p23 = _p20._0._0;
+								var _p22 = _p20._0._1;
+								var _p21 = msg;
+								if (_p21.ctor === 'Points') {
 									return A2(
 										_jastice$boxes_and_bubbles$Duplicate$update,
-										_jastice$boxes_and_bubbles$Duplicate$Points(_p25._0),
-										{ctor: '_Tuple2', _0: _p27, _1: _p26});
+										_jastice$boxes_and_bubbles$Duplicate$Points(_p21._0),
+										{ctor: '_Tuple2', _0: _p23, _1: _p22});
 								} else {
 									return {
 										ctor: '_Tuple2',
-										_0: {ctor: '_Tuple2', _0: _p27, _1: _p26},
-										_1: _p24._1
+										_0: {ctor: '_Tuple2', _0: _p23, _1: _p22},
+										_1: _p20._1
 									};
 								}
 							}),
@@ -13532,64 +13460,64 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 							_1: _elm_lang$core$Platform_Cmd$none
 						},
 						pointMsgs);
-					var model4 = _p22._0._0;
-					var keyboard3 = _p22._0._1;
-					var cmd3 = _p22._1;
+					var model4 = _p18._0._0;
+					var keyboard3 = _p18._0._1;
+					var cmd3 = _p18._1;
 					return {
 						ctor: '_Tuple2',
 						_0: {ctor: '_Tuple2', _0: model4, _1: keyboard3},
 						_1: cmd3
 					};
 				case 'KeyPress':
-					var _p29 = A2(
+					var _p25 = A2(
 						_jastice$boxes_and_bubbles$User$update,
-						_jastice$boxes_and_bubbles$User$KeyPress(_p11._0),
-						{ctor: '_Tuple2', _0: _p33.user, _1: _p32});
-					var updatedUser = _p29._0._0;
-					var keyboard = _p29._0._2;
-					var keyboardCmd = _p29._1;
+						_jastice$boxes_and_bubbles$User$KeyPress(_p7._0),
+						{ctor: '_Tuple2', _0: _p29.user, _1: _p28});
+					var updatedUser = _p25._0._0;
+					var keyboard = _p25._0._2;
+					var keyboardCmd = _p25._1;
 					return {
 						ctor: '_Tuple2',
 						_0: {
 							ctor: '_Tuple2',
 							_0: _elm_lang$core$Native_Utils.update(
-								_p33,
+								_p29,
 								{user: updatedUser}),
 							_1: keyboard
 						},
 						_1: A2(_elm_lang$core$Platform_Cmd$map, _jastice$boxes_and_bubbles$Duplicate$KeyPress, keyboardCmd)
 					};
 				case 'Regenerate':
-					var _p30 = A3(_jastice$boxes_and_bubbles$Duplicate$regenerate, _p33.seed, _jastice$boxes_and_bubbles$Duplicate$meta, _p11._0);
-					var newBody = _p30._0;
-					var newSeed = _p30._1;
+					var _p26 = A2(_jastice$boxes_and_bubbles$Bodies$regenerate, _p29.seed, _p7._0);
+					var newBody = _p26._0;
+					var newSeed = _p26._1;
 					var newModel = _elm_lang$core$Native_Utils.update(
-						_p33,
+						_p29,
 						{
 							bodies: A2(
 								_elm_lang$core$Basics_ops['++'],
-								_p33.bodies,
+								_p29.bodies,
 								_elm_lang$core$Native_List.fromArray(
 									[newBody])),
 							seed: newSeed
 						});
 					return {
 						ctor: '_Tuple2',
-						_0: {ctor: '_Tuple2', _0: newModel, _1: _p32},
+						_0: {ctor: '_Tuple2', _0: newModel, _1: _p28},
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				default:
-					var _p31 = _p11._0;
-					if (_p31.ctor === 'Regenerate') {
-						var _v7 = _jastice$boxes_and_bubbles$Duplicate$Regenerate(_p31._0),
-							_v8 = {ctor: '_Tuple2', _0: _p33, _1: _p32};
+					var _p27 = _p7._0;
+					if (_p27.ctor === 'Regenerate') {
+						var _v7 = _jastice$boxes_and_bubbles$Duplicate$Regenerate(_p27._0),
+							_v8 = {ctor: '_Tuple2', _0: _p29, _1: _p28};
 						msg = _v7;
-						_p9 = _v8;
+						_p5 = _v8;
 						continue update;
 					} else {
 						return {
 							ctor: '_Tuple2',
-							_0: {ctor: '_Tuple2', _0: _p33, _1: _p32},
+							_0: {ctor: '_Tuple2', _0: _p29, _1: _p28},
 							_1: _elm_lang$core$Platform_Cmd$none
 						};
 					}
@@ -13607,9 +13535,9 @@ var _jastice$boxes_and_bubbles$Duplicate$subs = _elm_lang$core$Platform_Sub$batc
 		]));
 var _jastice$boxes_and_bubbles$Duplicate$main = {
 	main: function () {
-		var _p34 = _ohanhi$keyboard_extra$Keyboard_Extra$init;
-		var keyboard = _p34._0;
-		var keyboardCmd = _p34._1;
+		var _p30 = _ohanhi$keyboard_extra$Keyboard_Extra$init;
+		var keyboard = _p30._0;
+		var keyboardCmd = _p30._1;
 		return _elm_lang$html$Html_App$program(
 			{
 				init: {
@@ -13619,9 +13547,9 @@ var _jastice$boxes_and_bubbles$Duplicate$main = {
 				},
 				update: _jastice$boxes_and_bubbles$Duplicate$update,
 				subscriptions: _elm_lang$core$Basics$always(_jastice$boxes_and_bubbles$Duplicate$subs),
-				view: function (_p35) {
+				view: function (_p31) {
 					return _evancz$elm_graphics$Element$toHtml(
-						_jastice$boxes_and_bubbles$Duplicate$scene(_p35));
+						_jastice$boxes_and_bubbles$Duplicate$scene(_p31));
 				}
 			});
 	}()

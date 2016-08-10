@@ -39,7 +39,7 @@ type alias Model meta =
 
 initialModel : Model Bodies.Meta
 initialModel =
-    { bodies = (someBodies meta)
+    { bodies = Bodies.init
     , user = User.init
     , children = []
     , walls = Wall.init width
@@ -49,72 +49,13 @@ initialModel =
     }
 
 
--- meta : (Meta a)
-meta =
-  { isFood= False
-  , eaten = False
-  , dir = ( 0, 0 )
-  }
 
-food =
-  { isFood= True
-  , eaten = False
-  , dir = ( 0, 0 )
-  }
-
+-- VIEW
 
 ( height, width ) =
     ( 700, 700 )
 ( halfHeight, halfWidth ) =
     ( height/2, width/2)
-bColor : Color
-bColor =
-    rgb 238 130 238
-
-
-boxColor : Color
-boxColor =
-    lightBlue
-
-
-( bubbleCount, boxCount ) =
-    ( 20, 10 )
-randBubbles : a -> Random.Generator (List (Body a))
-randBubbles meta =
-    Random.list bubbleCount (randBubble bColor e0 ( -200, 200 ) ( -3, 3 ) meta)
-
-
-randBoxes : a -> Random.Generator (List (Body a))
-randBoxes meta =
-    Random.list boxCount (randBox boxColor e0 ( -200, 200 ) ( 10, 30 ) meta)
-
-
-randBody : Random.Generator (Body Bodies.Meta)
-randBody =
-    Random.bool
-        `Random.andThen` (\coin ->
-                            if coin then
-                                randBubble bColor e0 ( -200, 200 ) ( -3, 3 ) food
-                            else
-                                randBox boxColor e0 ( 10, 50 ) ( 10, 50 ) meta
-                         )
-
-
-someBodies : Bodies.Meta -> List (Body Bodies.Meta)
-someBodies meta =
-    let
-        ( bubbles, seed2 ) =
-            Random.step (randBubbles food) (Random.initialSeed 2)
-
-        ( boxes, seed3 ) =
-            Random.step (randBoxes meta) seed2
-    in
-        (bubbles ++ boxes)
-
-
-
--- VIEW
-
 
 scene : ( Model Bodies.Meta, Keyboard.Model ) -> Element
 scene ( model, keyboard ) =
@@ -215,7 +156,7 @@ update msg ( model, keyboard ) =
         Regenerate body ->
             let
                 ( newBody, newSeed ) =
-                    regenerate model.seed meta body
+                    Bodies.regenerate model.seed body
 
                 newModel =
                     { model | bodies = model.bodies ++ [ newBody ], seed = newSeed }
@@ -301,15 +242,3 @@ counterforces t =
     ( ( 0, -0.01 ), ( 0, t / 1000 ) )
 
 
-{-| regenerate is used when a body has reached the bounds
-it regenerates a new body at the opposite end
--}
-regenerate : Random.Seed -> Bodies.Meta -> Body Bodies.Meta -> ( Body Bodies.Meta, Random.Seed )
-regenerate seed meta body =
-    let
-        ( newBody, seed' ) =
-            (Random.step (randBody) seed)
-    in
-        ( { newBody | pos = mul2 body.pos (-15 / 16), velocity = plus ( 0, 0.2 ) (mul2 body.velocity (1 / 2)) }
-        , seed'
-        )
