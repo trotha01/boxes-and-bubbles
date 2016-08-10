@@ -14,12 +14,8 @@ import Bodies
 -- MODEL
 
 
-type alias Model meta =
-    Body meta
-
-
-
--- todo: simplify this meta type
+type alias Model =
+    Body Meta
 
 
 type alias Meta =
@@ -29,10 +25,10 @@ type alias Meta =
 
 meta : Meta
 meta =
-    Meta ( 0, 0 )
+    { dir = ( 0, 0 ) }
 
 
-init : Model Meta
+init : Model
 init =
     bubble purple 100 1 e0 ( -80, 0 ) ( 1, 0 ) meta
 
@@ -51,7 +47,7 @@ type Msg
 -- TODO: add type signature
 
 
-update : Msg -> ( Model Meta, Keyboard.Model ) -> ( ( Model Meta, List (Body Bodies.Meta), Keyboard.Model ), Cmd Keyboard.Msg )
+update : Msg -> ( Model, Keyboard.Model ) -> ( ( Model, List (Body Bodies.Meta), Keyboard.Model ), Cmd Keyboard.Msg )
 update msg ( model, keyboard ) =
     case msg of
         MakeChild ->
@@ -113,7 +109,7 @@ swallow food =
 
 {-| collideWithBody: collide user with another body
 -}
-collideWithBody : Model Meta -> Body (Food a) -> ( Model Meta, Body (Food a) )
+collideWithBody : Model -> Body (Food a) -> ( Model, Body (Food a) )
 collideWithBody user body =
     let
         collisionResult =
@@ -153,7 +149,7 @@ collideWithBody user body =
 
 {-| collideWithBodies: collide user with list of body
 -}
-collideWithBodies : Model Meta -> List (Body (Food a)) -> ( Model Meta, List (Body (Food a)) )
+collideWithBodies : Model -> List (Body (Food a)) -> ( Model, List (Body (Food a)) )
 collideWithBodies user0 bodies0 =
     let
         ( user1, bodies1 ) =
@@ -175,7 +171,7 @@ collideWithBodies user0 bodies0 =
 -- VIEW
 
 
-view : Model Meta -> Form
+view : Model -> Form
 view model =
     let
         veloLine =

@@ -28,7 +28,7 @@ import Bound
 
 type alias Model =
     { bodies : List (Body Bodies.Meta)
-    , user : User.Model User.Meta
+    , user : User.Model
     , children : List (Body Bodies.Meta)
     , walls : Wall.Model Wall.Meta
     , bounds : Bound.Model Bound.Meta
