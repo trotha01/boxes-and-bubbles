@@ -3,5 +3,5 @@ TODO:
 - Find out how to more evenly distribute the shapes on start
 - Simplify "meta"
 - make some children re-appear
-- make keyboard part of the model
 - regenerate new piece when two are combined
+- better user movement
