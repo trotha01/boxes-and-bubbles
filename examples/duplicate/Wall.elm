@@ -16,16 +16,8 @@ type alias Model =
     List (Body Meta)
 
 
-
--- todo: simplify this meta type
-
-
 type alias Meta =
     {}
-
-
-
--- TODO: simplify meta
 
 
 wallMeta : Meta
@@ -33,9 +25,9 @@ wallMeta =
     {}
 
 
-init : Float -> Model
-init width =
-    bounds ( width - 10, width - 10 ) 10 e0 ( 0, 0 ) wallMeta
+init : Float -> Float -> Model
+init width height =
+    bounds ( width - 10, height - 10 ) 10 e0 ( 0, 0 ) wallMeta
 
 
 
@@ -44,7 +36,12 @@ init width =
 
 
 type Msg
-    = Tick Time
+    = Resize ( Int, Int )
+
+
+update : Msg -> Model -> Model
+update (Resize ( w, h )) model =
+    init (toFloat w) (toFloat h)
 
 
 collideWith : Model -> Body meta2 -> Body meta2

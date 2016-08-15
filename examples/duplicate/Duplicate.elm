@@ -14,7 +14,9 @@ import Element exposing (..)
 import Color exposing (..)
 import AnimationFrame
 import Time exposing (Time)
+import Task
 import Keyboard.Extra as Keyboard
+import Window
 import Text
 import Random
 import User exposing (init)
@@ -35,6 +37,8 @@ type alias Model =
     , seed : Random.Seed
     , points : Int
     , keyboard : Keyboard.Model
+    , windowWidth : Int
+    , windowHeight : Int
     }
 
 
@@ -43,11 +47,13 @@ initialModel keyboard =
     { bodies = Bodies.init
     , user = User.init
     , children = []
-    , walls = Wall.init width
+    , walls = Wall.init width height
     , bounds = Bound.init width height
     , seed = Random.initialSeed 3
     , points = 0
     , keyboard = keyboard
+    , windowWidth = 700
+    , windowHeight = 700
     }
 
 
@@ -61,7 +67,7 @@ initialModel keyboard =
     ( height / 2, width / 2 )
 scene : Model -> Element
 scene model =
-    collage width height
+    collage model.windowWidth model.windowHeight
         <| ((User.view model.user)
                 :: (Bodies.view model.bodies ++ Bodies.view model.children)
                 ++ (Wall.view model.walls)
@@ -71,7 +77,17 @@ scene model =
 
 points : Model -> List Form
 points model =
-    [ (text (Text.fromString (toString model.points))) |> Collage.move ( halfWidth - 50, halfHeight - 50 ) ]
+    let
+        helfWidth =
+            (toFloat model.windowWidth) / 2
+
+        halfHeight =
+            (toFloat model.windowHeight) / 2
+
+        pointText =
+            (text (Text.fromString (toString model.points)))
+    in
+        [ pointText |> Collage.move ( halfWidth - 50, halfHeight - 50 ) ]
 
 
 
@@ -84,11 +100,26 @@ type Msg
     | KeyPress Keyboard.Msg
     | BoundMsg (Bound.Msg Bodies.Meta)
     | Regenerate (Body Bodies.Meta)
+    | WindowResize ( Int, Int )
+    | NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
+        WindowResize ( w, h ) ->
+            let
+                walls =
+                    Wall.update (Wall.Resize ( w, h )) model.walls
+
+                bounds =
+                    Bound.update (Bound.Resize ( w, h )) model.bounds
+            in
+                ( { model | windowWidth = w, windowHeight = h, walls = walls, bounds = bounds }, Cmd.none )
+
         Points p ->
             let
                 ( ( _, children, _ ), _ ) =
@@ -198,6 +229,7 @@ subs =
     Sub.batch
         [ Sub.map KeyPress Keyboard.subscriptions
         , AnimationFrame.diffs Tick
+        , Window.resizes (\size -> WindowResize ( size.width, size.height ))
         ]
 
 
@@ -212,7 +244,13 @@ main =
             Keyboard.init
     in
         program
-            { init = ( (initialModel keyboard), Cmd.map KeyPress keyboardCmd )
+            { init =
+                ( (initialModel keyboard)
+                , Cmd.batch
+                    [ Cmd.map KeyPress keyboardCmd
+                    , initialWindowSize
+                    ]
+                )
             , update = update
             , subscriptions = always subs
             , view = scene >> Element.toHtml
@@ -221,6 +259,11 @@ main =
 
 
 -- HELPERS
+
+
+initialWindowSize : Cmd Msg
+initialWindowSize =
+    Task.perform (\_ -> NoOp) (\size -> WindowResize ( size.width, size.height )) Window.size
 
 
 inf : Float

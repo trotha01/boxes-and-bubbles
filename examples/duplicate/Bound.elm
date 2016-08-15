@@ -42,6 +42,17 @@ init width height =
 type Msg meta
     = Tick Time
     | Regenerate (Body meta)
+    | Resize ( Int, Int )
+
+
+update : Msg a -> Model -> Model
+update msg model =
+    case msg of
+        Resize ( w, h ) ->
+            init (toFloat w) (toFloat h)
+
+        _ ->
+            model
 
 
 {-| collideWithBodies: collide bounds with list of body

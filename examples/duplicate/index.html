@@ -2318,17 +2318,40 @@ var incomingPortMap = F2(function subMap(tagger, finalTagger)
 
 function setupIncomingPort(name, callback)
 {
+	var sentBeforeInit = [];
 	var subs = _elm_lang$core$Native_List.Nil;
 	var converter = effectManagers[name].converter;
+	var currentOnEffects = preInitOnEffects;
+	var currentSend = preInitSend;
 
 	// CREATE MANAGER
 
 	var init = _elm_lang$core$Native_Scheduler.succeed(null);
 
-	function onEffects(router, subList, state)
+	function preInitOnEffects(router, subList, state)
+	{
+		var postInitResult = postInitOnEffects(router, subList, state);
+
+		for(var i = 0; i < sentBeforeInit.length; i++)
+		{
+			postInitSend(sentBeforeInit[i]);
+		}
+
+		sentBeforeInit = null; // to release objects held in queue
+		currentSend = postInitSend;
+		currentOnEffects = postInitOnEffects;
+		return postInitResult;
+	}
+
+	function postInitOnEffects(router, subList, state)
 	{
 		subs = subList;
 		return init;
+	}
+
+	function onEffects(router, subList, state)
+	{
+		return currentOnEffects(router, subList, state);
 	}
 
 	effectManagers[name].init = init;
@@ -2336,9 +2359,14 @@ function setupIncomingPort(name, callback)
 
 	// PUBLIC API
 
-	function send(value)
+	function preInitSend(value)
 	{
-		var result = A2(_elm_lang$core$Json_Decode$decodeValue, converter, value);
+		sentBeforeInit.push(value);
+	}
+
+	function postInitSend(incomingValue)
+	{
+		var result = A2(_elm_lang$core$Json_Decode$decodeValue, converter, incomingValue);
 		if (result.ctor === 'Err')
 		{
 			throw new Error('Trying to send an unexpected type of value through port `' + name + '`:\n' + result._0);
@@ -2351,6 +2379,11 @@ function setupIncomingPort(name, callback)
 			callback(temp._0(value));
 			temp = temp._1;
 		}
+	}
+
+	function send(incomingValue)
+	{
+		currentSend(incomingValue);
 	}
 
 	return { send: send };
@@ -2374,7 +2407,8 @@ return {
 	map: F2(map)
 };
 
-}();//import Native.Utils //
+}();
+//import Native.Utils //
 
 var _elm_lang$core$Native_Scheduler = function() {
 
@@ -7218,9 +7252,150 @@ function on(node)
 	};
 }
 
+var rAF = typeof requestAnimationFrame !== 'undefined'
+	? requestAnimationFrame
+	: function(callback) { callback(); };
+
+function withNode(id, doStuff)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		rAF(function()
+		{
+			var node = document.getElementById(id);
+			if (node === null)
+			{
+				callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NotFound', _0: id }));
+				return;
+			}
+			callback(_elm_lang$core$Native_Scheduler.succeed(doStuff(node)));
+		});
+	});
+}
+
+
+// FOCUS
+
+function focus(id)
+{
+	return withNode(id, function(node) {
+		node.focus();
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function blur(id)
+{
+	return withNode(id, function(node) {
+		node.blur();
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+
+// SCROLLING
+
+function getScrollTop(id)
+{
+	return withNode(id, function(node) {
+		return node.scrollTop;
+	});
+}
+
+function setScrollTop(id, desiredScrollTop)
+{
+	return withNode(id, function(node) {
+		node.scrollTop = desiredScrollTop;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function toBottom(id)
+{
+	return withNode(id, function(node) {
+		node.scrollTop = node.scrollHeight;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function getScrollLeft(id)
+{
+	return withNode(id, function(node) {
+		return node.scrollLeft;
+	});
+}
+
+function setScrollLeft(id, desiredScrollLeft)
+{
+	return withNode(id, function(node) {
+		node.scrollLeft = desiredScrollLeft;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function toRight(id)
+{
+	return withNode(id, function(node) {
+		node.scrollLeft = node.scrollWidth;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+
+// SIZE
+
+function width(options, id)
+{
+	return withNode(id, function(node) {
+		switch (options.ctor)
+		{
+			case 'Content':
+				return node.scrollWidth;
+			case 'VisibleContent':
+				return node.clientWidth;
+			case 'VisibleContentWithBorders':
+				return node.offsetWidth;
+			case 'VisibleContentWithBordersAndMargins':
+				var rect = node.getBoundingClientRect();
+				return rect.right - rect.left;
+		}
+	});
+}
+
+function height(options, id)
+{
+	return withNode(id, function(node) {
+		switch (options.ctor)
+		{
+			case 'Content':
+				return node.scrollHeight;
+			case 'VisibleContent':
+				return node.clientHeight;
+			case 'VisibleContentWithBorders':
+				return node.offsetHeight;
+			case 'VisibleContentWithBordersAndMargins':
+				var rect = node.getBoundingClientRect();
+				return rect.bottom - rect.top;
+		}
+	});
+}
+
 return {
 	onDocument: F3(on(document)),
-	onWindow: F3(on(window))
+	onWindow: F3(on(window)),
+
+	focus: focus,
+	blur: blur,
+
+	getScrollTop: getScrollTop,
+	setScrollTop: F2(setScrollTop),
+	getScrollLeft: getScrollLeft,
+	setScrollLeft: F2(setScrollLeft),
+	toBottom: toBottom,
+	toRight: toRight,
+
+	height: F2(height),
+	width: F2(width)
 };
 
 }();
@@ -9015,6 +9190,126 @@ var _elm_lang$keyboard$Keyboard$subMap = F2(
 			});
 	});
 _elm_lang$core$Native_Platform.effectManagers['Keyboard'] = {pkg: 'elm-lang/keyboard', init: _elm_lang$keyboard$Keyboard$init, onEffects: _elm_lang$keyboard$Keyboard$onEffects, onSelfMsg: _elm_lang$keyboard$Keyboard$onSelfMsg, tag: 'sub', subMap: _elm_lang$keyboard$Keyboard$subMap};
+var _elm_lang$window$Native_Window = function()
+{
+
+var size = _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)	{
+	callback(_elm_lang$core$Native_Scheduler.succeed({
+		width: window.innerWidth,
+		height: window.innerHeight
+	}));
+});
+
+return {
+	size: size
+};
+
+}();var _elm_lang$window$Window_ops = _elm_lang$window$Window_ops || {};
+_elm_lang$window$Window_ops['&>'] = F2(
+	function (t1, t2) {
+		return A2(
+			_elm_lang$core$Task$andThen,
+			t1,
+			function (_p0) {
+				return t2;
+			});
+	});
+var _elm_lang$window$Window$onSelfMsg = F3(
+	function (router, dimensions, state) {
+		var _p1 = state;
+		if (_p1.ctor === 'Nothing') {
+			return _elm_lang$core$Task$succeed(state);
+		} else {
+			var send = function (_p2) {
+				var _p3 = _p2;
+				return A2(
+					_elm_lang$core$Platform$sendToApp,
+					router,
+					_p3._0(dimensions));
+			};
+			return A2(
+				_elm_lang$window$Window_ops['&>'],
+				_elm_lang$core$Task$sequence(
+					A2(_elm_lang$core$List$map, send, _p1._0.subs)),
+				_elm_lang$core$Task$succeed(state));
+		}
+	});
+var _elm_lang$window$Window$init = _elm_lang$core$Task$succeed(_elm_lang$core$Maybe$Nothing);
+var _elm_lang$window$Window$size = _elm_lang$window$Native_Window.size;
+var _elm_lang$window$Window$width = A2(
+	_elm_lang$core$Task$map,
+	function (_) {
+		return _.width;
+	},
+	_elm_lang$window$Window$size);
+var _elm_lang$window$Window$height = A2(
+	_elm_lang$core$Task$map,
+	function (_) {
+		return _.height;
+	},
+	_elm_lang$window$Window$size);
+var _elm_lang$window$Window$onEffects = F3(
+	function (router, newSubs, oldState) {
+		var _p4 = {ctor: '_Tuple2', _0: oldState, _1: newSubs};
+		if (_p4._0.ctor === 'Nothing') {
+			if (_p4._1.ctor === '[]') {
+				return _elm_lang$core$Task$succeed(_elm_lang$core$Maybe$Nothing);
+			} else {
+				return A2(
+					_elm_lang$core$Task$andThen,
+					_elm_lang$core$Process$spawn(
+						A3(
+							_elm_lang$dom$Dom_LowLevel$onWindow,
+							'resize',
+							_elm_lang$core$Json_Decode$succeed(
+								{ctor: '_Tuple0'}),
+							function (_p5) {
+								return A2(
+									_elm_lang$core$Task$andThen,
+									_elm_lang$window$Window$size,
+									_elm_lang$core$Platform$sendToSelf(router));
+							})),
+					function (pid) {
+						return _elm_lang$core$Task$succeed(
+							_elm_lang$core$Maybe$Just(
+								{subs: newSubs, pid: pid}));
+					});
+			}
+		} else {
+			if (_p4._1.ctor === '[]') {
+				return A2(
+					_elm_lang$window$Window_ops['&>'],
+					_elm_lang$core$Process$kill(_p4._0._0.pid),
+					_elm_lang$core$Task$succeed(_elm_lang$core$Maybe$Nothing));
+			} else {
+				return _elm_lang$core$Task$succeed(
+					_elm_lang$core$Maybe$Just(
+						{subs: newSubs, pid: _p4._0._0.pid}));
+			}
+		}
+	});
+var _elm_lang$window$Window$subscription = _elm_lang$core$Native_Platform.leaf('Window');
+var _elm_lang$window$Window$Size = F2(
+	function (a, b) {
+		return {width: a, height: b};
+	});
+var _elm_lang$window$Window$MySub = function (a) {
+	return {ctor: 'MySub', _0: a};
+};
+var _elm_lang$window$Window$resizes = function (tagger) {
+	return _elm_lang$window$Window$subscription(
+		_elm_lang$window$Window$MySub(tagger));
+};
+var _elm_lang$window$Window$subMap = F2(
+	function (func, _p6) {
+		var _p7 = _p6;
+		return _elm_lang$window$Window$MySub(
+			function (_p8) {
+				return func(
+					_p7._0(_p8));
+			});
+	});
+_elm_lang$core$Native_Platform.effectManagers['Window'] = {pkg: 'elm-lang/window', init: _elm_lang$window$Window$init, onEffects: _elm_lang$window$Window$onEffects, onSelfMsg: _elm_lang$window$Window$onSelfMsg, tag: 'sub', subMap: _elm_lang$window$Window$subMap};
 var _evancz$elm_graphics$Native_Element = function()
 {
 
@@ -12333,42 +12628,57 @@ var _jastice$boxes_and_bubbles$Bound$init = F2(
 			{ctor: '_Tuple2', _0: 0, _1: 0},
 			_jastice$boxes_and_bubbles$Bound$boundMeta);
 	});
+var _jastice$boxes_and_bubbles$Bound$update = F2(
+	function (msg, model) {
+		var _p2 = msg;
+		if ((_p2.ctor === 'Resize') && (_p2._0.ctor === '_Tuple2')) {
+			return A2(
+				_jastice$boxes_and_bubbles$Bound$init,
+				_elm_lang$core$Basics$toFloat(_p2._0._0),
+				_elm_lang$core$Basics$toFloat(_p2._0._1));
+		} else {
+			return model;
+		}
+	});
 var _jastice$boxes_and_bubbles$Bound$Meta = {};
+var _jastice$boxes_and_bubbles$Bound$Resize = function (a) {
+	return {ctor: 'Resize', _0: a};
+};
 var _jastice$boxes_and_bubbles$Bound$Regenerate = function (a) {
 	return {ctor: 'Regenerate', _0: a};
 };
 var _jastice$boxes_and_bubbles$Bound$collideBoundsWithBodies = F3(
-	function (bounds, bodies, _p2) {
+	function (bounds, bodies, _p3) {
 		collideBoundsWithBodies:
 		while (true) {
-			var _p3 = _p2;
-			var _p7 = _p3._1;
-			var _p6 = _p3._0;
-			var _p4 = {ctor: '_Tuple2', _0: bounds, _1: bodies};
-			if (_p4._0.ctor === '[]') {
-				return {ctor: '_Tuple2', _0: _p6, _1: _p7};
+			var _p4 = _p3;
+			var _p8 = _p4._1;
+			var _p7 = _p4._0;
+			var _p5 = {ctor: '_Tuple2', _0: bounds, _1: bodies};
+			if (_p5._0.ctor === '[]') {
+				return {ctor: '_Tuple2', _0: _p7, _1: _p8};
 			} else {
-				if (_p4._1.ctor === '[]') {
-					return {ctor: '_Tuple2', _0: _p6, _1: _p7};
+				if (_p5._1.ctor === '[]') {
+					return {ctor: '_Tuple2', _0: _p7, _1: _p8};
 				} else {
-					var _p5 = _p4._1._0;
-					var collisionResult = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$collision, _p4._0._0, _p5);
+					var _p6 = _p5._1._0;
+					var collisionResult = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$collision, _p5._0._0, _p6);
 					if (_elm_lang$core$Native_Utils.cmp(collisionResult.penetration, 0) > 0) {
 						return {
 							ctor: '_Tuple2',
-							_0: _p6,
+							_0: _p7,
 							_1: A2(
 								_elm_lang$core$List_ops['::'],
-								_jastice$boxes_and_bubbles$Bound$Regenerate(_p5),
-								_p7)
+								_jastice$boxes_and_bubbles$Bound$Regenerate(_p6),
+								_p8)
 						};
 					} else {
-						var _v3 = _p4._0._1,
-							_v4 = _p4._1._1,
-							_v5 = {ctor: '_Tuple2', _0: _p6, _1: _p7};
-						bounds = _v3;
-						bodies = _v4;
-						_p2 = _v5;
+						var _v4 = _p5._0._1,
+							_v5 = _p5._1._1,
+							_v6 = {ctor: '_Tuple2', _0: _p7, _1: _p8};
+						bounds = _v4;
+						bodies = _v5;
+						_p3 = _v6;
 						continue collideBoundsWithBodies;
 					}
 				}
@@ -12376,94 +12686,94 @@ var _jastice$boxes_and_bubbles$Bound$collideBoundsWithBodies = F3(
 		}
 	});
 var _jastice$boxes_and_bubbles$Bound$collideBoundWithBodies = F3(
-	function (bound, bodies, _p8) {
+	function (bound, bodies, _p9) {
 		collideBoundWithBodies:
 		while (true) {
-			var _p9 = _p8;
-			var _p14 = _p9._1;
-			var _p13 = _p9._0;
-			var _p10 = bodies;
-			if (_p10.ctor === '[]') {
+			var _p10 = _p9;
+			var _p15 = _p10._1;
+			var _p14 = _p10._0;
+			var _p11 = bodies;
+			if (_p11.ctor === '[]') {
 				return _elm_lang$core$Native_List.fromArray(
 					[]);
 			} else {
-				var _p12 = _p10._1;
-				var _p11 = _p10._0;
-				var collisionResult = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$collision, bound, _p11);
+				var _p13 = _p11._1;
+				var _p12 = _p11._0;
+				var collisionResult = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$collision, bound, _p12);
 				if (_elm_lang$core$Native_Utils.cmp(collisionResult.penetration, 0) > 0) {
-					var _v8 = bound,
-						_v9 = _p12,
-						_v10 = {
+					var _v9 = bound,
+						_v10 = _p13,
+						_v11 = {
 						ctor: '_Tuple2',
-						_0: _p13,
+						_0: _p14,
 						_1: A2(
 							_elm_lang$core$List_ops['::'],
-							_jastice$boxes_and_bubbles$Bound$Regenerate(_p11),
-							_p14)
+							_jastice$boxes_and_bubbles$Bound$Regenerate(_p12),
+							_p15)
 					};
-					bound = _v8;
-					bodies = _v9;
-					_p8 = _v10;
+					bound = _v9;
+					bodies = _v10;
+					_p9 = _v11;
 					continue collideBoundWithBodies;
 				} else {
-					var _v11 = bound,
-						_v12 = A2(_elm_lang$core$List_ops['::'], _p11, _p12),
-						_v13 = {ctor: '_Tuple2', _0: _p13, _1: _p14};
-					bound = _v11;
-					bodies = _v12;
-					_p8 = _v13;
+					var _v12 = bound,
+						_v13 = A2(_elm_lang$core$List_ops['::'], _p12, _p13),
+						_v14 = {ctor: '_Tuple2', _0: _p14, _1: _p15};
+					bound = _v12;
+					bodies = _v13;
+					_p9 = _v14;
 					continue collideBoundWithBodies;
 				}
 			}
 		}
 	});
 var _jastice$boxes_and_bubbles$Bound$collideBoundsWithBody = F3(
-	function (bounds, maybeBody, _p15) {
+	function (bounds, maybeBody, _p16) {
 		collideBoundsWithBody:
 		while (true) {
-			var _p16 = _p15;
-			var _p21 = _p16._1;
-			var _p20 = _p16._0;
-			var _p17 = {ctor: '_Tuple2', _0: bounds, _1: maybeBody};
-			if (_p17._1.ctor === 'Nothing') {
-				if (_p17._0.ctor === '[]') {
-					return {ctor: '_Tuple2', _0: _p20, _1: _p21};
+			var _p17 = _p16;
+			var _p22 = _p17._1;
+			var _p21 = _p17._0;
+			var _p18 = {ctor: '_Tuple2', _0: bounds, _1: maybeBody};
+			if (_p18._1.ctor === 'Nothing') {
+				if (_p18._0.ctor === '[]') {
+					return {ctor: '_Tuple2', _0: _p21, _1: _p22};
 				} else {
-					return {ctor: '_Tuple2', _0: _p20, _1: _p21};
+					return {ctor: '_Tuple2', _0: _p21, _1: _p22};
 				}
 			} else {
-				if (_p17._0.ctor === '[]') {
+				if (_p18._0.ctor === '[]') {
 					return {
 						ctor: '_Tuple2',
-						_0: A2(_elm_lang$core$List_ops['::'], _p17._1._0, _p20),
-						_1: _p21
+						_0: A2(_elm_lang$core$List_ops['::'], _p18._1._0, _p21),
+						_1: _p22
 					};
 				} else {
-					var _p19 = _p17._0._1;
-					var _p18 = _p17._1._0;
-					var collisionResult = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$collision, _p17._0._0, _p18);
+					var _p20 = _p18._0._1;
+					var _p19 = _p18._1._0;
+					var collisionResult = A2(_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$collision, _p18._0._0, _p19);
 					if (_elm_lang$core$Native_Utils.cmp(collisionResult.penetration, 0) > 0) {
-						var _v16 = _p19,
-							_v17 = _elm_lang$core$Maybe$Nothing,
-							_v18 = {
+						var _v17 = _p20,
+							_v18 = _elm_lang$core$Maybe$Nothing,
+							_v19 = {
 							ctor: '_Tuple2',
-							_0: _p20,
+							_0: _p21,
 							_1: A2(
 								_elm_lang$core$List_ops['::'],
-								_jastice$boxes_and_bubbles$Bound$Regenerate(_p18),
-								_p21)
+								_jastice$boxes_and_bubbles$Bound$Regenerate(_p19),
+								_p22)
 						};
-						bounds = _v16;
-						maybeBody = _v17;
-						_p15 = _v18;
+						bounds = _v17;
+						maybeBody = _v18;
+						_p16 = _v19;
 						continue collideBoundsWithBody;
 					} else {
-						var _v19 = _p19,
-							_v20 = _elm_lang$core$Maybe$Just(_p18),
-							_v21 = {ctor: '_Tuple2', _0: _p20, _1: _p21};
-						bounds = _v19;
-						maybeBody = _v20;
-						_p15 = _v21;
+						var _v20 = _p20,
+							_v21 = _elm_lang$core$Maybe$Just(_p19),
+							_v22 = {ctor: '_Tuple2', _0: _p21, _1: _p22};
+						bounds = _v20;
+						maybeBody = _v21;
+						_p16 = _v22;
 						continue collideBoundsWithBody;
 					}
 				}
@@ -12475,13 +12785,13 @@ var _jastice$boxes_and_bubbles$Bound$collideWithBodies = F2(
 		return A3(
 			_elm_lang$core$List$foldl,
 			F2(
-				function (body, _p22) {
-					var _p23 = _p22;
+				function (body, _p23) {
+					var _p24 = _p23;
 					return A3(
 						_jastice$boxes_and_bubbles$Bound$collideBoundsWithBody,
 						bounds,
 						_elm_lang$core$Maybe$Just(body),
-						{ctor: '_Tuple2', _0: _p23._0, _1: _p23._1});
+						{ctor: '_Tuple2', _0: _p24._0, _1: _p24._1});
 				}),
 			{
 				ctor: '_Tuple2',
@@ -13253,18 +13563,27 @@ var _jastice$boxes_and_bubbles$Wall$collideWith = F2(
 		return A3(_elm_lang$core$List$foldl, _jastice$boxes_and_bubbles$Wall$collideWithWall, user, walls);
 	});
 var _jastice$boxes_and_bubbles$Wall$wallMeta = {};
-var _jastice$boxes_and_bubbles$Wall$init = function (width) {
-	return A5(
-		_jastice$boxes_and_bubbles$BoxesAndBubbles$bounds,
-		{ctor: '_Tuple2', _0: width - 10, _1: width - 10},
-		10,
-		_jastice$boxes_and_bubbles$Wall$e0,
-		{ctor: '_Tuple2', _0: 0, _1: 0},
-		_jastice$boxes_and_bubbles$Wall$wallMeta);
-};
+var _jastice$boxes_and_bubbles$Wall$init = F2(
+	function (width, height) {
+		return A5(
+			_jastice$boxes_and_bubbles$BoxesAndBubbles$bounds,
+			{ctor: '_Tuple2', _0: width - 10, _1: height - 10},
+			10,
+			_jastice$boxes_and_bubbles$Wall$e0,
+			{ctor: '_Tuple2', _0: 0, _1: 0},
+			_jastice$boxes_and_bubbles$Wall$wallMeta);
+	});
+var _jastice$boxes_and_bubbles$Wall$update = F2(
+	function (_p3, model) {
+		var _p4 = _p3;
+		return A2(
+			_jastice$boxes_and_bubbles$Wall$init,
+			_elm_lang$core$Basics$toFloat(_p4._0._0),
+			_elm_lang$core$Basics$toFloat(_p4._0._1));
+	});
 var _jastice$boxes_and_bubbles$Wall$Meta = {};
-var _jastice$boxes_and_bubbles$Wall$Tick = function (a) {
-	return {ctor: 'Tick', _0: a};
+var _jastice$boxes_and_bubbles$Wall$Resize = function (a) {
+	return {ctor: 'Resize', _0: a};
 };
 var _jastice$boxes_and_bubbles$Duplicate$counterforces = function (t) {
 	return {
@@ -13304,11 +13623,13 @@ var _jastice$boxes_and_bubbles$Duplicate$_p1 = {ctor: '_Tuple2', _0: _jastice$bo
 var _jastice$boxes_and_bubbles$Duplicate$halfHeight = _jastice$boxes_and_bubbles$Duplicate$_p1._0;
 var _jastice$boxes_and_bubbles$Duplicate$halfWidth = _jastice$boxes_and_bubbles$Duplicate$_p1._1;
 var _jastice$boxes_and_bubbles$Duplicate$points = function (model) {
+	var halfHeight = _elm_lang$core$Basics$toFloat(model.windowHeight) / 2;
+	var helfWidth = _elm_lang$core$Basics$toFloat(model.windowWidth) / 2;
 	return _elm_lang$core$Native_List.fromArray(
 		[
 			A2(
 			_evancz$elm_graphics$Collage$move,
-			{ctor: '_Tuple2', _0: _jastice$boxes_and_bubbles$Duplicate$halfWidth - 50, _1: _jastice$boxes_and_bubbles$Duplicate$halfHeight - 50},
+			{ctor: '_Tuple2', _0: _jastice$boxes_and_bubbles$Duplicate$halfWidth - 50, _1: halfHeight - 50},
 			_evancz$elm_graphics$Collage$text(
 				_evancz$elm_graphics$Text$fromString(
 					_elm_lang$core$Basics$toString(model.points))))
@@ -13317,8 +13638,8 @@ var _jastice$boxes_and_bubbles$Duplicate$points = function (model) {
 var _jastice$boxes_and_bubbles$Duplicate$scene = function (model) {
 	return A3(
 		_evancz$elm_graphics$Collage$collage,
-		_jastice$boxes_and_bubbles$Duplicate$width,
-		_jastice$boxes_and_bubbles$Duplicate$height,
+		model.windowWidth,
+		model.windowHeight,
 		A2(
 			_elm_lang$core$Basics_ops['++'],
 			A2(
@@ -13339,17 +13660,50 @@ var _jastice$boxes_and_bubbles$Duplicate$initialModel = function (keyboard) {
 		user: _jastice$boxes_and_bubbles$User$init,
 		children: _elm_lang$core$Native_List.fromArray(
 			[]),
-		walls: _jastice$boxes_and_bubbles$Wall$init(_jastice$boxes_and_bubbles$Duplicate$width),
+		walls: A2(_jastice$boxes_and_bubbles$Wall$init, _jastice$boxes_and_bubbles$Duplicate$width, _jastice$boxes_and_bubbles$Duplicate$height),
 		bounds: A2(_jastice$boxes_and_bubbles$Bound$init, _jastice$boxes_and_bubbles$Duplicate$width, _jastice$boxes_and_bubbles$Duplicate$height),
 		seed: _elm_lang$core$Random$initialSeed(3),
 		points: 0,
-		keyboard: keyboard
+		keyboard: keyboard,
+		windowWidth: 700,
+		windowHeight: 700
 	};
 };
-var _jastice$boxes_and_bubbles$Duplicate$Model = F8(
-	function (a, b, c, d, e, f, g, h) {
-		return {bodies: a, user: b, children: c, walls: d, bounds: e, seed: f, points: g, keyboard: h};
-	});
+var _jastice$boxes_and_bubbles$Duplicate$Model = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return {bodies: a, user: b, children: c, walls: d, bounds: e, seed: f, points: g, keyboard: h, windowWidth: i, windowHeight: j};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var _jastice$boxes_and_bubbles$Duplicate$NoOp = {ctor: 'NoOp'};
+var _jastice$boxes_and_bubbles$Duplicate$WindowResize = function (a) {
+	return {ctor: 'WindowResize', _0: a};
+};
+var _jastice$boxes_and_bubbles$Duplicate$initialWindowSize = A3(
+	_elm_lang$core$Task$perform,
+	function (_p2) {
+		return _jastice$boxes_and_bubbles$Duplicate$NoOp;
+	},
+	function (size) {
+		return _jastice$boxes_and_bubbles$Duplicate$WindowResize(
+			{ctor: '_Tuple2', _0: size.width, _1: size.height});
+	},
+	_elm_lang$window$Window$size);
 var _jastice$boxes_and_bubbles$Duplicate$Regenerate = function (a) {
 	return {ctor: 'Regenerate', _0: a};
 };
@@ -13366,17 +13720,39 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 	function (msg, model) {
 		update:
 		while (true) {
-			var _p2 = msg;
-			switch (_p2.ctor) {
+			var _p3 = msg;
+			switch (_p3.ctor) {
+				case 'NoOp':
+					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				case 'WindowResize':
+					var _p5 = _p3._0._0;
+					var _p4 = _p3._0._1;
+					var bounds = A2(
+						_jastice$boxes_and_bubbles$Bound$update,
+						_jastice$boxes_and_bubbles$Bound$Resize(
+							{ctor: '_Tuple2', _0: _p5, _1: _p4}),
+						model.bounds);
+					var walls = A2(
+						_jastice$boxes_and_bubbles$Wall$update,
+						_jastice$boxes_and_bubbles$Wall$Resize(
+							{ctor: '_Tuple2', _0: _p5, _1: _p4}),
+						model.walls);
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{windowWidth: _p5, windowHeight: _p4, walls: walls, bounds: bounds}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
 				case 'Points':
 					var model2 = _elm_lang$core$Native_Utils.update(
 						model,
-						{points: model.points + _p2._0});
-					var _p3 = A2(
+						{points: model.points + _p3._0});
+					var _p6 = A2(
 						_jastice$boxes_and_bubbles$User$update,
 						_jastice$boxes_and_bubbles$User$MakeChild,
 						{ctor: '_Tuple2', _0: model.user, _1: model.keyboard});
-					var children = _p3._0._1;
+					var children = _p6._0._1;
 					var model3 = ((!_elm_lang$core$Native_Utils.eq(model2.points, 0)) && _elm_lang$core$Native_Utils.eq(
 						A2(_elm_lang$core$Basics_ops['%'], model2.points, 100),
 						0)) ? _elm_lang$core$Native_Utils.update(
@@ -13386,79 +13762,79 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 						}) : model2;
 					return {ctor: '_Tuple2', _0: model3, _1: _elm_lang$core$Platform_Cmd$none};
 				case 'Tick':
-					var _p18 = _p2._0;
-					var _p4 = A2(
+					var _p21 = _p3._0;
+					var _p7 = A2(
 						_jastice$boxes_and_bubbles$User$update,
-						_jastice$boxes_and_bubbles$User$Tick(_p18),
+						_jastice$boxes_and_bubbles$User$Tick(_p21),
 						{ctor: '_Tuple2', _0: model.user, _1: model.keyboard});
-					var user1 = _p4._0._0;
-					var children = _p4._0._1;
-					var _p5 = A2(_jastice$boxes_and_bubbles$User$collideWithBodies, user1, model.bodies);
-					var user2 = _p5._0;
-					var bodies2 = _p5._1;
+					var user1 = _p7._0._0;
+					var children = _p7._0._1;
+					var _p8 = A2(_jastice$boxes_and_bubbles$User$collideWithBodies, user1, model.bodies);
+					var user2 = _p8._0;
+					var bodies2 = _p8._1;
 					var user4 = A2(_jastice$boxes_and_bubbles$Wall$collideWith, model.walls, user2);
-					var _p6 = A2(
+					var _p9 = A2(
 						_jastice$boxes_and_bubbles$Bodies$update,
-						_jastice$boxes_and_bubbles$Bodies$Tick(_p18),
+						_jastice$boxes_and_bubbles$Bodies$Tick(_p21),
 						bodies2);
-					var bodies3 = _p6._0;
-					var pointMsgs = _p6._1;
-					var _p7 = A2(_jastice$boxes_and_bubbles$Bound$collideWithBodies, model.bounds, bodies3);
-					var bodies4 = _p7._0;
-					var msgs$ = _p7._1;
-					var _p8 = A2(
+					var bodies3 = _p9._0;
+					var pointMsgs = _p9._1;
+					var _p10 = A2(_jastice$boxes_and_bubbles$Bound$collideWithBodies, model.bounds, bodies3);
+					var bodies4 = _p10._0;
+					var msgs$ = _p10._1;
+					var _p11 = A2(
 						_jastice$boxes_and_bubbles$Bodies$update,
-						_jastice$boxes_and_bubbles$Bodies$Tick(_p18),
+						_jastice$boxes_and_bubbles$Bodies$Tick(_p21),
 						A2(_elm_lang$core$Basics_ops['++'], model.children, children));
-					var children3 = _p8._0;
-					var _p9 = A2(_jastice$boxes_and_bubbles$Bound$collideWithBodies, model.bounds, children3);
-					var children4 = _p9._0;
+					var children3 = _p11._0;
+					var _p12 = A2(_jastice$boxes_and_bubbles$Bound$collideWithBodies, model.bounds, children3);
+					var children4 = _p12._0;
 					var model2 = _elm_lang$core$Native_Utils.update(
 						model,
 						{user: user4, bodies: bodies4, children: children4});
-					var _p10 = A3(
-						_elm_lang$core$List$foldl,
-						F2(
-							function (msg, _p11) {
-								var _p12 = _p11;
-								return A2(
-									_jastice$boxes_and_bubbles$Duplicate$update,
-									_jastice$boxes_and_bubbles$Duplicate$BoundMsg(msg),
-									_p12._0);
-							}),
-						{ctor: '_Tuple2', _0: model2, _1: _elm_lang$core$Platform_Cmd$none},
-						msgs$);
-					var model3 = _p10._0;
-					var cmd2 = _p10._1;
 					var _p13 = A3(
 						_elm_lang$core$List$foldl,
 						F2(
 							function (msg, _p14) {
 								var _p15 = _p14;
-								var _p17 = _p15._0;
-								var _p16 = msg;
-								if (_p16.ctor === 'Points') {
+								return A2(
+									_jastice$boxes_and_bubbles$Duplicate$update,
+									_jastice$boxes_and_bubbles$Duplicate$BoundMsg(msg),
+									_p15._0);
+							}),
+						{ctor: '_Tuple2', _0: model2, _1: _elm_lang$core$Platform_Cmd$none},
+						msgs$);
+					var model3 = _p13._0;
+					var cmd2 = _p13._1;
+					var _p16 = A3(
+						_elm_lang$core$List$foldl,
+						F2(
+							function (msg, _p17) {
+								var _p18 = _p17;
+								var _p20 = _p18._0;
+								var _p19 = msg;
+								if (_p19.ctor === 'Points') {
 									return A2(
 										_jastice$boxes_and_bubbles$Duplicate$update,
-										_jastice$boxes_and_bubbles$Duplicate$Points(_p16._0),
-										_p17);
+										_jastice$boxes_and_bubbles$Duplicate$Points(_p19._0),
+										_p20);
 								} else {
-									return {ctor: '_Tuple2', _0: _p17, _1: _p15._1};
+									return {ctor: '_Tuple2', _0: _p20, _1: _p18._1};
 								}
 							}),
 						{ctor: '_Tuple2', _0: model3, _1: _elm_lang$core$Platform_Cmd$none},
 						pointMsgs);
-					var model4 = _p13._0;
-					var cmd3 = _p13._1;
+					var model4 = _p16._0;
+					var cmd3 = _p16._1;
 					return {ctor: '_Tuple2', _0: model4, _1: cmd3};
 				case 'KeyPress':
-					var _p19 = A2(
+					var _p22 = A2(
 						_jastice$boxes_and_bubbles$User$update,
-						_jastice$boxes_and_bubbles$User$KeyPress(_p2._0),
+						_jastice$boxes_and_bubbles$User$KeyPress(_p3._0),
 						{ctor: '_Tuple2', _0: model.user, _1: model.keyboard});
-					var updatedUser = _p19._0._0;
-					var keyboard = _p19._0._2;
-					var keyboardCmd = _p19._1;
+					var updatedUser = _p22._0._0;
+					var keyboard = _p22._0._2;
+					var keyboardCmd = _p22._1;
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
@@ -13467,9 +13843,9 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 						_1: A2(_elm_lang$core$Platform_Cmd$map, _jastice$boxes_and_bubbles$Duplicate$KeyPress, keyboardCmd)
 					};
 				case 'Regenerate':
-					var _p20 = A2(_jastice$boxes_and_bubbles$Bodies$regenerate, model.seed, _p2._0);
-					var newBody = _p20._0;
-					var newSeed = _p20._1;
+					var _p23 = A2(_jastice$boxes_and_bubbles$Bodies$regenerate, model.seed, _p3._0);
+					var newBody = _p23._0;
+					var newSeed = _p23._1;
 					var newModel = _elm_lang$core$Native_Utils.update(
 						model,
 						{
@@ -13482,9 +13858,9 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 						});
 					return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 				default:
-					var _p21 = _p2._0;
-					if (_p21.ctor === 'Regenerate') {
-						var _v5 = _jastice$boxes_and_bubbles$Duplicate$Regenerate(_p21._0),
+					var _p24 = _p3._0;
+					if (_p24.ctor === 'Regenerate') {
+						var _v5 = _jastice$boxes_and_bubbles$Duplicate$Regenerate(_p24._0),
 							_v6 = model;
 						msg = _v5;
 						model = _v6;
@@ -13502,25 +13878,35 @@ var _jastice$boxes_and_bubbles$Duplicate$subs = _elm_lang$core$Platform_Sub$batc
 	_elm_lang$core$Native_List.fromArray(
 		[
 			A2(_elm_lang$core$Platform_Sub$map, _jastice$boxes_and_bubbles$Duplicate$KeyPress, _ohanhi$keyboard_extra$Keyboard_Extra$subscriptions),
-			_elm_lang$animation_frame$AnimationFrame$diffs(_jastice$boxes_and_bubbles$Duplicate$Tick)
+			_elm_lang$animation_frame$AnimationFrame$diffs(_jastice$boxes_and_bubbles$Duplicate$Tick),
+			_elm_lang$window$Window$resizes(
+			function (size) {
+				return _jastice$boxes_and_bubbles$Duplicate$WindowResize(
+					{ctor: '_Tuple2', _0: size.width, _1: size.height});
+			})
 		]));
 var _jastice$boxes_and_bubbles$Duplicate$main = {
 	main: function () {
-		var _p22 = _ohanhi$keyboard_extra$Keyboard_Extra$init;
-		var keyboard = _p22._0;
-		var keyboardCmd = _p22._1;
+		var _p25 = _ohanhi$keyboard_extra$Keyboard_Extra$init;
+		var keyboard = _p25._0;
+		var keyboardCmd = _p25._1;
 		return _elm_lang$html$Html_App$program(
 			{
 				init: {
 					ctor: '_Tuple2',
 					_0: _jastice$boxes_and_bubbles$Duplicate$initialModel(keyboard),
-					_1: A2(_elm_lang$core$Platform_Cmd$map, _jastice$boxes_and_bubbles$Duplicate$KeyPress, keyboardCmd)
+					_1: _elm_lang$core$Platform_Cmd$batch(
+						_elm_lang$core$Native_List.fromArray(
+							[
+								A2(_elm_lang$core$Platform_Cmd$map, _jastice$boxes_and_bubbles$Duplicate$KeyPress, keyboardCmd),
+								_jastice$boxes_and_bubbles$Duplicate$initialWindowSize
+							]))
 				},
 				update: _jastice$boxes_and_bubbles$Duplicate$update,
 				subscriptions: _elm_lang$core$Basics$always(_jastice$boxes_and_bubbles$Duplicate$subs),
-				view: function (_p23) {
+				view: function (_p26) {
 					return _evancz$elm_graphics$Element$toHtml(
-						_jastice$boxes_and_bubbles$Duplicate$scene(_p23));
+						_jastice$boxes_and_bubbles$Duplicate$scene(_p26));
 				}
 			});
 	}()
