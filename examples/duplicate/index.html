@@ -12168,7 +12168,7 @@ var _jastice$boxes_and_bubbles$BoxesAndBubbles$bounds = F5(
 				{ctor: '_Tuple2', _0: thickness, _1: _p11},
 				inf,
 				restitution,
-				{ctor: '_Tuple2', _0: 0 - (hExt + halfThick), _1: _p10},
+				{ctor: '_Tuple2', _0: 0 - (wExt + halfThick), _1: _p10},
 				{ctor: '_Tuple2', _0: 0, _1: 0},
 				meta)
 			]);
@@ -13623,6 +13623,9 @@ var _jastice$boxes_and_bubbles$Duplicate$_p1 = {ctor: '_Tuple2', _0: _jastice$bo
 var _jastice$boxes_and_bubbles$Duplicate$halfHeight = _jastice$boxes_and_bubbles$Duplicate$_p1._0;
 var _jastice$boxes_and_bubbles$Duplicate$halfWidth = _jastice$boxes_and_bubbles$Duplicate$_p1._1;
 var _jastice$boxes_and_bubbles$Duplicate$points = function (model) {
+	var pointText = _evancz$elm_graphics$Collage$text(
+		_evancz$elm_graphics$Text$fromString(
+			_elm_lang$core$Basics$toString(model.points)));
 	var halfHeight = _elm_lang$core$Basics$toFloat(model.windowHeight) / 2;
 	var helfWidth = _elm_lang$core$Basics$toFloat(model.windowWidth) / 2;
 	return _elm_lang$core$Native_List.fromArray(
@@ -13630,9 +13633,7 @@ var _jastice$boxes_and_bubbles$Duplicate$points = function (model) {
 			A2(
 			_evancz$elm_graphics$Collage$move,
 			{ctor: '_Tuple2', _0: _jastice$boxes_and_bubbles$Duplicate$halfWidth - 50, _1: halfHeight - 50},
-			_evancz$elm_graphics$Collage$text(
-				_evancz$elm_graphics$Text$fromString(
-					_elm_lang$core$Basics$toString(model.points))))
+			pointText)
 		]);
 };
 var _jastice$boxes_and_bubbles$Duplicate$scene = function (model) {
