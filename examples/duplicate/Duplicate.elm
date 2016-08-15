@@ -118,23 +118,30 @@ update msg model =
                 bounds =
                     Bound.update (Bound.Resize ( w, h )) model.bounds
             in
-                ( { model | windowWidth = w, windowHeight = h, walls = walls, bounds = bounds }, Cmd.none )
+                ( { model
+                    | windowWidth = w
+                    , windowHeight = h
+                    , walls = walls
+                    , bounds = bounds
+                  }
+                , Cmd.none
+                )
 
         Points p ->
             let
                 ( ( _, children, _ ), _ ) =
                     User.update User.MakeChild ( model.user, model.keyboard )
 
-                model2 =
-                    { model | points = model.points + p }
+                newPoints =
+                    model.points + p
 
-                model3 =
-                    if model2.points /= 0 && model2.points % 100 == 0 then
-                        { model2 | children = model2.children ++ children }
+                model2 =
+                    if newPoints /= 0 && newPoints % 100 == 0 then
+                        { model | children = model.children ++ children, points = newPoints }
                     else
-                        model2
+                        { model | points = newPoints }
             in
-                ( model3, Cmd.none )
+                ( model2, Cmd.none )
 
         Tick dt ->
             let
@@ -173,12 +180,14 @@ update msg model =
                     { model | user = user4, bodies = bodies4, children = children4 }
 
                 -- hack, since I don't know how to generate a Cmd
+                -- we do the bound msgs here
                 ( model3, cmd2 ) =
                     List.foldl (\msg ( m, cmd ) -> (update (BoundMsg msg) m))
                         ( model2, Cmd.none )
                         msgs'
 
                 -- hack2, since I don't know how to generate a Cmd
+                -- we do the point msgs here
                 ( model4, cmd3 ) =
                     List.foldl
                         (\msg ( m, cmd ) ->
@@ -206,10 +215,10 @@ update msg model =
                 ( newBody, newSeed ) =
                     Bodies.regenerate model.seed body
 
-                newModel =
+                model2 =
                     { model | bodies = model.bodies ++ [ newBody ], seed = newSeed }
             in
-                ( newModel, Cmd.none )
+                ( model2, Cmd.none )
 
         BoundMsg msg ->
             case msg of
@@ -229,7 +238,7 @@ subs =
     Sub.batch
         [ Sub.map KeyPress Keyboard.subscriptions
         , AnimationFrame.diffs Tick
-        , Window.resizes (\size -> WindowResize ( size.width, size.height ))
+        , Window.resizes windowResize
         ]
 
 
@@ -263,7 +272,12 @@ main =
 
 initialWindowSize : Cmd Msg
 initialWindowSize =
-    Task.perform (\_ -> NoOp) (\size -> WindowResize ( size.width, size.height )) Window.size
+    Task.perform (\_ -> NoOp) windowResize Window.size
+
+
+windowResize : { width : Int, height : Int } -> Msg
+windowResize size =
+    WindowResize ( size.width, size.height )
 
 
 inf : Float
