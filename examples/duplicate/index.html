@@ -13695,15 +13695,16 @@ var _jastice$boxes_and_bubbles$Duplicate$NoOp = {ctor: 'NoOp'};
 var _jastice$boxes_and_bubbles$Duplicate$WindowResize = function (a) {
 	return {ctor: 'WindowResize', _0: a};
 };
+var _jastice$boxes_and_bubbles$Duplicate$windowResize = function (size) {
+	return _jastice$boxes_and_bubbles$Duplicate$WindowResize(
+		{ctor: '_Tuple2', _0: size.width, _1: size.height});
+};
 var _jastice$boxes_and_bubbles$Duplicate$initialWindowSize = A3(
 	_elm_lang$core$Task$perform,
 	function (_p2) {
 		return _jastice$boxes_and_bubbles$Duplicate$NoOp;
 	},
-	function (size) {
-		return _jastice$boxes_and_bubbles$Duplicate$WindowResize(
-			{ctor: '_Tuple2', _0: size.width, _1: size.height});
-	},
+	_jastice$boxes_and_bubbles$Duplicate$windowResize,
 	_elm_lang$window$Window$size);
 var _jastice$boxes_and_bubbles$Duplicate$Regenerate = function (a) {
 	return {ctor: 'Regenerate', _0: a};
@@ -13746,22 +13747,23 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				case 'Points':
-					var model2 = _elm_lang$core$Native_Utils.update(
-						model,
-						{points: model.points + _p3._0});
+					var newPoints = model.points + _p3._0;
 					var _p6 = A2(
 						_jastice$boxes_and_bubbles$User$update,
 						_jastice$boxes_and_bubbles$User$MakeChild,
 						{ctor: '_Tuple2', _0: model.user, _1: model.keyboard});
 					var children = _p6._0._1;
-					var model3 = ((!_elm_lang$core$Native_Utils.eq(model2.points, 0)) && _elm_lang$core$Native_Utils.eq(
-						A2(_elm_lang$core$Basics_ops['%'], model2.points, 100),
+					var model2 = ((!_elm_lang$core$Native_Utils.eq(newPoints, 0)) && _elm_lang$core$Native_Utils.eq(
+						A2(_elm_lang$core$Basics_ops['%'], newPoints, 100),
 						0)) ? _elm_lang$core$Native_Utils.update(
-						model2,
+						model,
 						{
-							children: A2(_elm_lang$core$Basics_ops['++'], model2.children, children)
-						}) : model2;
-					return {ctor: '_Tuple2', _0: model3, _1: _elm_lang$core$Platform_Cmd$none};
+							children: A2(_elm_lang$core$Basics_ops['++'], model.children, children),
+							points: newPoints
+						}) : _elm_lang$core$Native_Utils.update(
+						model,
+						{points: newPoints});
+					return {ctor: '_Tuple2', _0: model2, _1: _elm_lang$core$Platform_Cmd$none};
 				case 'Tick':
 					var _p21 = _p3._0;
 					var _p7 = A2(
@@ -13847,7 +13849,7 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 					var _p23 = A2(_jastice$boxes_and_bubbles$Bodies$regenerate, model.seed, _p3._0);
 					var newBody = _p23._0;
 					var newSeed = _p23._1;
-					var newModel = _elm_lang$core$Native_Utils.update(
+					var model2 = _elm_lang$core$Native_Utils.update(
 						model,
 						{
 							bodies: A2(
@@ -13857,7 +13859,7 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 									[newBody])),
 							seed: newSeed
 						});
-					return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
+					return {ctor: '_Tuple2', _0: model2, _1: _elm_lang$core$Platform_Cmd$none};
 				default:
 					var _p24 = _p3._0;
 					if (_p24.ctor === 'Regenerate') {
@@ -13880,11 +13882,7 @@ var _jastice$boxes_and_bubbles$Duplicate$subs = _elm_lang$core$Platform_Sub$batc
 		[
 			A2(_elm_lang$core$Platform_Sub$map, _jastice$boxes_and_bubbles$Duplicate$KeyPress, _ohanhi$keyboard_extra$Keyboard_Extra$subscriptions),
 			_elm_lang$animation_frame$AnimationFrame$diffs(_jastice$boxes_and_bubbles$Duplicate$Tick),
-			_elm_lang$window$Window$resizes(
-			function (size) {
-				return _jastice$boxes_and_bubbles$Duplicate$WindowResize(
-					{ctor: '_Tuple2', _0: size.width, _1: size.height});
-			})
+			_elm_lang$window$Window$resizes(_jastice$boxes_and_bubbles$Duplicate$windowResize)
 		]));
 var _jastice$boxes_and_bubbles$Duplicate$main = {
 	main: function () {
