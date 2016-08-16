@@ -77,20 +77,36 @@ bubble color radius density restitution pos velocity meta =
     , meta = meta
     }
 
-randVel : Random.Generator (Float, Float)
-randVel = Random.pair (Random.float -3 3) (Random.float -3 3) 
+
+randVel : Random.Generator ( Float, Float )
+randVel =
+    Random.pair (Random.float -3 3) (Random.float -3 3)
+
 
 {-| randBubble takes the (min,max) x position
     and the (min,max) y position
 -}
-randBubble : Color -> Float -> (Float, Float) -> (Float, Float) -> meta -> Random.Generator (Body meta)
-randBubble color restitution (minX,maxX) (minY, maxY) meta =
-    let pos = Random.pair (Random.float minX maxX) (Random.float minY maxY)
-        radius = Random.float 5 30
-        density = Random.float 1 3
-    in Random.map4 (\(x,y) (vX,vY) r d ->
-                bubble color r d restitution (x,y) (vX, vY) meta)
-            pos randVel radius density  
+randBubble : Color -> Float -> ( Float, Float ) -> ( Float, Float ) -> meta -> Random.Generator (Body meta)
+randBubble color restitution ( minX, maxX ) ( minY, maxY ) meta =
+    let
+        pos =
+            Random.pair (Random.float minX maxX) (Random.float minY maxY)
+
+        radius =
+            Random.float 5 30
+
+        density =
+            Random.float 1 3
+    in
+        Random.map4
+            (\( x, y ) ( vX, vY ) r d ->
+                bubble color r d restitution ( x, y ) ( vX, vY ) meta
+            )
+            pos
+            randVel
+            radius
+            density
+
 
 {-| Create a box. Mass is derived from density and size.
 
@@ -116,14 +132,26 @@ box color ( w, h ) density restitution pos velocity meta =
 {-| randBox takes the (min,max) x position
     and the (min,max) y position
 -}
-randBox : Color -> Float -> (Float, Float) -> (Float, Float) -> meta -> Random.Generator (Body meta)
-randBox color restitution (minX,maxX) (minY, maxY) meta =
-    let pos = Random.pair (Random.float 10 30) (Random.float 10 30)
-        wh = Random.pair (Random.float minX maxX) (Random.float minY maxY)
-        density = Random.float 1 3
-    in Random.map4 (\(x,y) (vX,vY) (w,h) d ->
-                box color (w,h) d restitution (x,y) (vX, vY) meta)
-            pos randVel wh density  
+randBox : Color -> Float -> ( Float, Float ) -> ( Float, Float ) -> meta -> Random.Generator (Body meta)
+randBox color restitution ( minX, maxX ) ( minY, maxY ) meta =
+    let
+        pos =
+            Random.pair (Random.float 10 30) (Random.float 10 30)
+
+        wh =
+            Random.pair (Random.float minX maxX) (Random.float minY maxY)
+
+        density =
+            Random.float 1 3
+    in
+        Random.map4
+            (\( x, y ) ( vX, vY ) ( w, h ) d ->
+                box color ( w, h ) d restitution ( x, y ) ( vX, vY ) meta
+            )
+            pos
+            randVel
+            wh
+            density
 
 
 {-| Create a bounding box made up of boxes with infinite mass.
@@ -151,7 +179,7 @@ bounds ( w, h ) thickness restitution ( cx, cy ) meta =
         [ box black ( w, thickness ) inf restitution ( cx, hExt + halfThick ) ( 0, 0 ) meta
         , box black ( w, thickness ) inf restitution ( cx, -(hExt + halfThick) ) ( 0, 0 ) meta
         , box black ( thickness, h ) inf restitution ( wExt + halfThick, cy ) ( 0, 0 ) meta
-        , box black ( thickness, h ) inf restitution ( -(hExt + halfThick), cy ) ( 0, 0 ) meta
+        , box black ( thickness, h ) inf restitution ( -(wExt + halfThick), cy ) ( 0, 0 ) meta
         ]
 
 

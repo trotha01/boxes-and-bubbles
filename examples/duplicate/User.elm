@@ -9,33 +9,31 @@ import Collage exposing (..)
 import Time exposing (Time)
 import Keyboard.Extra as Keyboard
 import Bodies
+import PhysicsConsts exposing (noGravity, e0)
 
 
 -- MODEL
 
 
-type alias Model meta =
-    Body meta
+type alias Model =
+    Body Meta
 
 
-
--- todo: simplify this meta type
+type alias Children =
+    List (Body Bodies.Meta)
 
 
 type alias Meta =
-    { isFood : Bool
-    , isWall : Bool
-    , isBound : Bool
-    , dir : BoxesAndBubbles.Math2D.Vec2
+    { dir : BoxesAndBubbles.Math2D.Vec2
     }
 
 
 meta : Meta
 meta =
-    Meta False False False ( 0, 0 )
+    { dir = ( 0, 0 ) }
 
 
-init : Model Meta
+init : Model
 init =
     bubble purple 100 1 e0 ( -80, 0 ) ( 1, 0 ) meta
 
@@ -47,49 +45,45 @@ init =
 type Msg
     = Tick Time
     | KeyPress Keyboard.Msg
-    | MakeChild
 
 
-update : Msg -> ( Model Meta, Keyboard.Model ) -> ( ( Model Meta, List (Body Bodies.Meta), Keyboard.Model ), Cmd Keyboard.Msg )
+update : Msg -> ( Model, Keyboard.Model ) -> ( ( Model, Keyboard.Model ), Cmd Keyboard.Msg )
 update msg ( model, keyboard ) =
     case msg of
-        MakeChild ->
-          let
-             children =
-                    [{ pos = model.pos
-                    , velocity = model.velocity
-                    , inverseMass = model.inverseMass
-                    , restitution = model.restitution
-                    , shape = model.shape
-                    , color = model.color
-                    , meta =
-                      { isFood = False
-                      , eaten = False
-                      , isWall = False
-                      , isBound = False
-                      , dir = (0,0)
-                      }
-                    }]
-          in ( ( model, children, keyboard ), Cmd.none )
         Tick dt ->
             let
-                model2 =
+                user2 =
                     (uncurry Engine.update (noGravity dt)) model
             in
-                ( ( model2, [], keyboard ), Cmd.none )
+                ( ( user2, keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let
-                ( kybrd, keyboardCmd ) =
+                ( keyboard2, keyboardCmd ) =
                     Keyboard.update keyMsg keyboard
 
                 direction =
-                    Keyboard.arrows kybrd
+                    Keyboard.arrows keyboard2
 
-                updatedUser =
+                user2 =
                     Body.move model direction
             in
-                ( ( updatedUser, [], keyboard ), keyboardCmd )
+                ( ( user2, keyboard2 ), keyboardCmd )
+
+
+childFromModel : Model -> Body Bodies.Meta
+childFromModel model =
+    { pos = model.pos
+    , velocity = model.velocity
+    , inverseMass = model.inverseMass
+    , restitution = model.restitution
+    , shape = model.shape
+    , color = model.color
+    , meta =
+        { eaten = False
+        , isFood = False
+        }
+    }
 
 
 type alias Food a =
@@ -112,10 +106,11 @@ swallow food =
 
 {-| collideWithBody: collide user with another body
 -}
-collideWithBody : Model meta -> Body (Food a) -> ( Model meta, Body (Food a) )
+collideWithBody : Model -> Body (Food a) -> ( Model, Body (Food a) )
 collideWithBody user body =
     let
-        collisionResult = -- TODO: only collide if we have to
+        collisionResult =
+            -- TODO: only collide if we have to
             Engine.collision user body
 
         ( user1, body1 ) =
@@ -151,40 +146,36 @@ collideWithBody user body =
 
 {-| collideWithBodies: collide user with list of body
 -}
-collideWithBodies : Model meta -> List (Body (Food a)) -> ( Model meta, List (Body (Food a)) )
-collideWithBodies user0 bodies0 =
-    let
-        ( user1, bodies1 ) =
-            List.foldl
-                (\b ( u, bs ) ->
-                    let
-                        ( u2, b2 ) =
-                            collideWithBody u b
-                    in
-                        ( u2, b2 :: bs )
-                )
-                ( user0, [] )
-                bodies0
-    in
-        ( user1, bodies1 )
+collideWithBodies : Model -> List (Body (Food a)) -> ( Model, List (Body (Food a)) )
+collideWithBodies model bodies0 =
+    List.foldl
+        (\b ( u, bs ) ->
+            let
+                ( u2, b2 ) =
+                    collideWithBody u b
+            in
+                ( u2, b2 :: bs )
+        )
+        ( model, [] )
+        bodies0
 
 
 
 -- VIEW
 
 
-view : Model meta -> Form
-view model =
+view : Model -> Form
+view user =
     let
         veloLine =
-            segment ( 0, 0 ) (mul2 model.velocity 5) |> traced (solid red)
+            segment ( 0, 0 ) (mul2 user.velocity 5) |> traced (solid red)
 
         ready =
-            case model.shape of
+            case user.shape of
                 Bubble radius ->
                     group
                         [ circle radius
-                            |> filled model.color
+                            |> filled user.color
                           -- , veloLine
                         ]
 
@@ -194,20 +185,7 @@ view model =
                             extents
                     in
                         group
-                            [ rect (w * 2) (h * 2) |> filled model.color
+                            [ rect (w * 2) (h * 2) |> filled user.color
                             ]
     in
-        Collage.move model.pos ready
-
-
-
--- helpers
-
-
-noGravity t =
-    ( ( 0, 0.0 ), ( 0, 0 ) )
-
-
-e0 : Float
-e0 =
-    0.8
+        Collage.move user.pos ready

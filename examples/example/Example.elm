@@ -75,6 +75,7 @@ someBodies =
         ++ bounds ( width - 50, height - 50 ) 100 e0 ( 0, 0 ) defaultLabel
 
 
+
 -- we'll just compute the label from the data in the body
 
 
@@ -151,10 +152,12 @@ scene ( bodies, keyboard ) =
 -- different force functions to experiment with
 
 
-noGravity t = ( ( 0, 0.0 ), ( 0, 0 ) )
+noGravity t =
+    ( ( 0, 0.0 ), ( 0, 0 ) )
+
 
 constgravity t =
-     ( ( 0, -0.2 ), ( 0, 0 ) )
+    ( ( 0, -0.2 ), ( 0, 0 ) )
 
 
 
@@ -189,11 +192,12 @@ subs =
         , AnimationFrame.diffs Tick
         ]
 
+
 update : Msg -> ( Model meta, Keyboard.Model ) -> ( ( Model meta, Keyboard.Model ), Cmd Msg )
 update msg ( bodies, keyboard ) =
     case msg of
         Tick dt ->
-            ( ((uncurry step (constgravity dt) bodies), keyboard ), Cmd.none )
+            ( ( (uncurry step (constgravity dt) bodies), keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let

@@ -14,7 +14,9 @@ import Element exposing (..)
 import Color exposing (..)
 import AnimationFrame
 import Time exposing (Time)
+import Task
 import Keyboard.Extra as Keyboard
+import Window
 import Text
 import Random
 import User exposing (init)
@@ -26,128 +28,65 @@ import Bound
 -- MODEL
 
 
-type alias Model meta =
-    { bodies : List (Body meta)
-    , user : User.Model User.Meta
-    , children : List (Body meta)
-    , walls : Wall.Model Wall.Meta
-    , bounds : Bound.Model Bound.Meta
+type alias Model =
+    { bodies : Bodies.Model
+    , user : User.Model
+    , children : Bodies.Model
+    , walls : Wall.Model
+    , bounds : Bound.Model
     , seed : Random.Seed
     , points : Int
+    , keyboard : Keyboard.Model
+    , windowWidth : Int
+    , windowHeight : Int
     }
 
 
-type alias Meta a =
-    { a | isFood : Bool
-    , eaten : Bool
-    , isWall : Bool
-    , isBound : Bool
-    , dir : BoxesAndBubbles.Math2D.Vec2
-    }
-
-{-| TODO: get rid of this
--}
-type alias SpecificMeta =
-    { isFood : Bool
-    , eaten : Bool
-    , isWall : Bool
-    , isBound : Bool
-    , dir : BoxesAndBubbles.Math2D.Vec2
-    }
-
-initialModel : Model SpecificMeta
-initialModel =
-    { bodies = (someBodies meta)
+initialModel : Keyboard.Model -> Model
+initialModel keyboard =
+    { bodies = Bodies.init
     , user = User.init
     , children = []
-    , walls = Wall.init width
+    , walls = Wall.init width height
     , bounds = Bound.init width height
     , seed = Random.initialSeed 3
     , points = 0
+    , keyboard = keyboard
+    , windowWidth = 700
+    , windowHeight = 700
     }
-
-
--- meta : (Meta a)
-meta =
-  { isFood= False
-  , eaten = False
-  , isWall= False
-  , isBound= False
-  , dir = ( 0, 0 )
-  }
-
-food =
-  { isFood= True
-  , eaten = False
-  , isWall= False
-  , isBound= False
-  , dir = ( 0, 0 )
-  }
-
-
-( height, width ) =
-    ( 700, 700 )
-( halfHeight, halfWidth ) =
-    ( height/2, width/2)
-bColor : Color
-bColor =
-    rgb 238 130 238
-
-
-boxColor : Color
-boxColor =
-    lightBlue
-
-
-( bubbleCount, boxCount ) =
-    ( 20, 10 )
-randBubbles : a -> Random.Generator (List (Body a))
-randBubbles meta =
-    Random.list bubbleCount (randBubble bColor e0 ( -200, 200 ) ( -3, 3 ) meta)
-
-
-randBoxes : a -> Random.Generator (List (Body a))
-randBoxes meta =
-    Random.list boxCount (randBox boxColor e0 ( -200, 200 ) ( 10, 30 ) meta)
-
-
-randBody : Random.Generator (Body SpecificMeta)
-randBody =
-    Random.bool
-        `Random.andThen` (\coin ->
-                            if coin then
-                                randBubble bColor e0 ( -200, 200 ) ( -3, 3 ) food
-                            else
-                                randBox boxColor e0 ( 10, 50 ) ( 10, 50 ) meta
-                         )
-
-
-someBodies : SpecificMeta -> List (Body (Meta SpecificMeta))
-someBodies meta =
-    let
-        ( bubbles, seed2 ) =
-            Random.step (randBubbles food) (Random.initialSeed 2)
-
-        ( boxes, seed3 ) =
-            Random.step (randBoxes meta) seed2
-    in
-        (bubbles ++ boxes)
 
 
 
 -- VIEW
 
 
-scene : ( Model meta, Keyboard.Model ) -> Element
-scene ( model, keyboard ) =
-    collage width height
-        <| ((User.view model.user) :: (Bodies.view model.bodies ++ Bodies.view model.children)
-           ++ (Wall.view model.walls))
-           ++ points model
+( height, width ) =
+    ( 700, 700 )
+scene : Model -> Element
+scene model =
+    collage model.windowWidth model.windowHeight
+        <| (User.view model.user)
+        :: (Bodies.view model.bodies)
+        ++ (Bodies.view model.children)
+        ++ (Wall.view model.walls)
+        ++ points model
 
-points : Model meta -> List Form
+
+points : Model -> List Form
 points model =
-      [(text (Text.fromString (toString model.points))) |> Collage.move (halfWidth-50, halfHeight-50) ]
+    let
+        halfWidth =
+            (toFloat model.windowWidth) / 2
+
+        halfHeight =
+            (toFloat model.windowHeight) / 2
+
+        pointText =
+            (text (Text.fromString (toString model.points)))
+    in
+        [ pointText |> Collage.move ( halfWidth - 50, halfHeight - 50 ) ]
+
 
 
 -- UPDATE
@@ -157,26 +96,56 @@ type Msg
     = Tick Time
     | Points Int
     | KeyPress Keyboard.Msg
-    | BoundMsg (Bound.Msg SpecificMeta)
-    | Regenerate (Body SpecificMeta)
+    | BoundMsg (Bound.Msg Bodies.Meta)
+    | Regenerate (Body Bodies.Meta)
+    | WindowResize ( Int, Int )
+    | NoOp
 
 
-update : Msg -> ( Model (Meta SpecificMeta), Keyboard.Model ) -> ( ( Model (Meta SpecificMeta), Keyboard.Model ), Cmd Msg )
-update msg ( model, keyboard ) =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
+        WindowResize ( w, h ) ->
+            let
+                walls =
+                    Wall.update (Wall.Resize ( w, h )) model.walls
+
+                bounds =
+                    Bound.update (Bound.Resize ( w, h )) model.bounds
+            in
+                ( { model
+                    | windowWidth = w
+                    , windowHeight = h
+                    , walls = walls
+                    , bounds = bounds
+                  }
+                , Cmd.none
+                )
+
         Points p ->
-            let ((_, children, _), _) = User.update User.MakeChild (model.user, keyboard)
-                model2 = {model|points = model.points + p}
-                model3 =
-                  if model2.points /= 0 && model2.points % 100 == 0
-                  then {model2 | children = model2.children ++ children}
-                  else model2
-            in ((model3, keyboard), Cmd.none)
+            let
+                newPoints =
+                    model.points + p
+
+                model2 =
+                    if newPoints /= 0 && newPoints % 100 == 0 then
+                        { model
+                            | children = User.childFromModel model.user :: model.children
+                            , points = newPoints
+                        }
+                    else
+                        { model | points = newPoints }
+            in
+                ( model2, Cmd.none )
+
         Tick dt ->
             let
                 -- update user
-                ( ( user1, children, _ ), _ ) =
-                    User.update (User.Tick dt) ( model.user, keyboard )
+                ( ( user1, _ ), _ ) =
+                    User.update (User.Tick dt) ( model.user, model.keyboard )
 
                 -- collide user with the bodies
                 ( user2, bodies2 ) =
@@ -184,19 +153,18 @@ update msg ( model, keyboard ) =
 
                 -- collide user with the children
                 -- ( user3, children2) =
-                --     User.collideWithBodies user1 (model.children ++ children)
-
+                --     User.collideWithBodies user1 model.children
                 -- collide user with the wall
                 user4 =
                     Wall.collideWith model.walls user2
 
                 -- update the body collisions
-                (bodies3, pointMsgs) =
+                ( bodies3, pointMsgs ) =
                     Bodies.update (Bodies.Tick dt) (bodies2)
 
                 -- update the children collisions
-                (children3, _) =
-                    Bodies.update (Bodies.Tick dt) (model.children ++ children)
+                ( children3, _ ) =
+                    Bodies.update (Bodies.Tick dt) model.children
 
                 -- collide children with the bounds
                 ( children4, _ ) =
@@ -210,45 +178,53 @@ update msg ( model, keyboard ) =
                     { model | user = user4, bodies = bodies4, children = children4 }
 
                 -- hack, since I don't know how to generate a Cmd
-                ( ( model3, keyboard2 ), cmd2 ) =
-                    List.foldl (\msg ( ( m, k ), cmd ) -> (update (BoundMsg msg) ( m, k )))
-                        ( ( model2, keyboard ), Cmd.none )
+                -- we do the bound msgs here
+                ( model3, cmd2 ) =
+                    List.foldl (\msg ( m, cmd ) -> (update (BoundMsg msg) m))
+                        ( model2, Cmd.none )
                         msgs'
 
                 -- hack2, since I don't know how to generate a Cmd
-                ( ( model4, keyboard3 ), cmd3 ) =
+                -- we do the point msgs here
+                ( model4, cmd3 ) =
                     List.foldl
-                        (\msg ( ( m, k ), cmd ) ->
-                          case msg of
-                              (Bodies.Points p) -> (update (Points p) (m, k))
-                              _ -> ((m, k), cmd))
-                        ( ( model3, keyboard2 ), Cmd.none )
+                        (\msg ( m, cmd ) ->
+                            case msg of
+                                Bodies.Points p ->
+                                    (update (Points p) m)
+
+                                _ ->
+                                    ( m, cmd )
+                        )
+                        ( model3, Cmd.none )
                         pointMsgs
             in
-                ( ( model4, keyboard3 ), cmd3 )
+                ( model4, cmd3 )
 
         KeyPress keyMsg ->
             let
-                ( ( updatedUser, _, keyboard ), keyboardCmd ) =
-                    User.update (User.KeyPress keyMsg) ( model.user, keyboard )
+                ( ( updatedUser, keyboard ), keyboardCmd ) =
+                    User.update (User.KeyPress keyMsg) ( model.user, model.keyboard )
             in
-                ( ( { model | user = updatedUser }, keyboard ), Cmd.map KeyPress keyboardCmd )
+                ( { model | user = updatedUser, keyboard = keyboard }, Cmd.map KeyPress keyboardCmd )
 
         Regenerate body ->
             let
                 ( newBody, newSeed ) =
-                    regenerate model.seed meta body
+                    Bodies.regenerate model.seed body
 
-                newModel =
-                    { model | bodies = model.bodies ++ [ newBody ], seed = newSeed }
+                model2 =
+                    { model | bodies = newBody :: model.bodies, seed = newSeed }
             in
-                ( ( newModel, keyboard ), Cmd.none )
+                ( model2, Cmd.none )
+
         BoundMsg msg ->
             case msg of
                 Bound.Regenerate body ->
-                  update (Regenerate body) (model, keyboard)
+                    update (Regenerate body) model
+
                 _ ->
-                    ( ( model, keyboard ), Cmd.none )
+                    ( model, Cmd.none )
 
 
 
@@ -260,6 +236,7 @@ subs =
     Sub.batch
         [ Sub.map KeyPress Keyboard.subscriptions
         , AnimationFrame.diffs Tick
+        , Window.resizes windowResize
         ]
 
 
@@ -270,11 +247,17 @@ subs =
 main : Program Never
 main =
     let
-        ( keyboard, keyboardCmd ) =
+        ( initialKeyboard, keyboardCmd ) =
             Keyboard.init
     in
         program
-            { init = ( ( initialModel, keyboard ), Cmd.map KeyPress keyboardCmd )
+            { init =
+                ( (initialModel initialKeyboard)
+                , Cmd.batch
+                    [ Cmd.map KeyPress keyboardCmd
+                    , initialWindowSize
+                    ]
+                )
             , update = update
             , subscriptions = always subs
             , view = scene >> Element.toHtml
@@ -285,53 +268,11 @@ main =
 -- HELPERS
 
 
-inf : Float
-inf =
-    1 / 0
+initialWindowSize : Cmd Msg
+initialWindowSize =
+    Task.perform (\_ -> NoOp) windowResize Window.size
 
 
-{-| e0 default restitution coefficient
--}
-e0 : Float
-e0 =
-    0.8
-
-
-
--- different force functions to experiment with
-
-
-noGravity t =
-    ( ( 0, 0.0 ), ( 0, 0 ) )
-
-
-{-| constant downward gravity
--}
-constgravity t =
-    ( ( 0, -0.2 ), ( 0, 0 ) )
-
-
-{-| sinusoidal sideways force
--}
-sinforce t =
-    ( (sin <| radians (t / 1000)) * 50, 0 )
-
-
-{-| small gravity, slowly accellerating upward drift
--}
-counterforces t =
-    ( ( 0, -0.01 ), ( 0, t / 1000 ) )
-
-
-{-| regenerate is used when a body has reached the bounds
-it regenerates a new body at the opposite end
--}
-regenerate : Random.Seed -> SpecificMeta -> Body SpecificMeta -> ( Body SpecificMeta, Random.Seed )
-regenerate seed meta body =
-    let
-        ( newBody, seed' ) =
-            (Random.step (randBody) seed)
-    in
-        ( { newBody | pos = mul2 body.pos (-15 / 16), velocity = plus ( 0, 0.2 ) (mul2 body.velocity (1 / 2)) }
-        , seed'
-        )
+windowResize : { width : Int, height : Int } -> Msg
+windowResize size =
+    WindowResize ( size.width, size.height )
