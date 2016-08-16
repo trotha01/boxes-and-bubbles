@@ -27,7 +27,7 @@ wallMeta =
 
 init : Float -> Float -> Model
 init width height =
-    bounds ( width - 10, height - 10 ) 10 e0 ( 0, 0 ) wallMeta
+    bounds ( width, height ) 10 e0 ( 0, 0 ) wallMeta
 
 
 
