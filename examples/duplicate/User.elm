@@ -59,16 +59,16 @@ update msg ( model, keyboard ) =
 
         KeyPress keyMsg ->
             let
-                ( kybrd, keyboardCmd ) =
+                ( keyboard2, keyboardCmd ) =
                     Keyboard.update keyMsg keyboard
 
                 direction =
-                    Keyboard.arrows kybrd
+                    Keyboard.arrows keyboard2
 
                 user2 =
                     Body.move model direction
             in
-                ( ( user2, keyboard ), keyboardCmd )
+                ( ( user2, keyboard2 ), keyboardCmd )
 
 
 childFromModel : Model -> Body Bodies.Meta
@@ -148,20 +148,16 @@ collideWithBody user body =
 -}
 collideWithBodies : Model -> List (Body (Food a)) -> ( Model, List (Body (Food a)) )
 collideWithBodies model bodies0 =
-    let
-        ( user1, bodies1 ) =
-            List.foldl
-                (\b ( u, bs ) ->
-                    let
-                        ( u2, b2 ) =
-                            collideWithBody u b
-                    in
-                        ( u2, b2 :: bs )
-                )
-                ( model, [] )
-                bodies0
-    in
-        ( user1, bodies1 )
+    List.foldl
+        (\b ( u, bs ) ->
+            let
+                ( u2, b2 ) =
+                    collideWithBody u b
+            in
+                ( u2, b2 :: bs )
+        )
+        ( model, [] )
+        bodies0
 
 
 
