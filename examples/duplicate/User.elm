@@ -44,25 +44,17 @@ init =
 type Msg
     = Tick Time
     | KeyPress Keyboard.Msg
-    | MakeChild
 
 
-
--- TODO: add type signature
-
-
-update : Msg -> ( Model, Keyboard.Model ) -> ( ( Model, Children, Keyboard.Model ), Cmd Keyboard.Msg )
+update : Msg -> ( Model, Keyboard.Model ) -> ( ( Model, Keyboard.Model ), Cmd Keyboard.Msg )
 update msg ( model, keyboard ) =
     case msg of
-        MakeChild ->
-            ( ( model, [ childFromModel model ], keyboard ), Cmd.none )
-
         Tick dt ->
             let
                 user2 =
                     (uncurry Engine.update (noGravity dt)) model
             in
-                ( ( user2, [], keyboard ), Cmd.none )
+                ( ( user2, keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let
@@ -75,7 +67,7 @@ update msg ( model, keyboard ) =
                 user2 =
                     Body.move model direction
             in
-                ( ( user2, [], keyboard ), keyboardCmd )
+                ( ( user2, keyboard ), keyboardCmd )
 
 
 childFromModel : Model -> Body Bodies.Meta

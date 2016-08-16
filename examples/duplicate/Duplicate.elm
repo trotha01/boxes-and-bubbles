@@ -63,22 +63,20 @@ initialModel keyboard =
 
 ( height, width ) =
     ( 700, 700 )
-( halfHeight, halfWidth ) =
-    ( height / 2, width / 2 )
 scene : Model -> Element
 scene model =
     collage model.windowWidth model.windowHeight
-        <| ((User.view model.user)
-                :: (Bodies.view model.bodies ++ Bodies.view model.children)
-                ++ (Wall.view model.walls)
-           )
+        <| (User.view model.user)
+        :: (Bodies.view model.bodies)
+        ++ (Bodies.view model.children)
+        ++ (Wall.view model.walls)
         ++ points model
 
 
 points : Model -> List Form
 points model =
     let
-        helfWidth =
+        halfWidth =
             (toFloat model.windowWidth) / 2
 
         halfHeight =
@@ -129,15 +127,15 @@ update msg model =
 
         Points p ->
             let
-                ( ( _, children, _ ), _ ) =
-                    User.update User.MakeChild ( model.user, model.keyboard )
-
                 newPoints =
                     model.points + p
 
                 model2 =
                     if newPoints /= 0 && newPoints % 100 == 0 then
-                        { model | children = model.children ++ children, points = newPoints }
+                        { model
+                            | children = User.childFromModel model.user :: model.children
+                            , points = newPoints
+                        }
                     else
                         { model | points = newPoints }
             in
@@ -146,7 +144,7 @@ update msg model =
         Tick dt ->
             let
                 -- update user
-                ( ( user1, children, _ ), _ ) =
+                ( ( user1, _ ), _ ) =
                     User.update (User.Tick dt) ( model.user, model.keyboard )
 
                 -- collide user with the bodies
@@ -155,7 +153,7 @@ update msg model =
 
                 -- collide user with the children
                 -- ( user3, children2) =
-                --     User.collideWithBodies user1 (model.children ++ children)
+                --     User.collideWithBodies user1 model.children
                 -- collide user with the wall
                 user4 =
                     Wall.collideWith model.walls user2
@@ -166,7 +164,7 @@ update msg model =
 
                 -- update the children collisions
                 ( children3, _ ) =
-                    Bodies.update (Bodies.Tick dt) (model.children ++ children)
+                    Bodies.update (Bodies.Tick dt) model.children
 
                 -- collide children with the bounds
                 ( children4, _ ) =
@@ -205,7 +203,7 @@ update msg model =
 
         KeyPress keyMsg ->
             let
-                ( ( updatedUser, _, keyboard ), keyboardCmd ) =
+                ( ( updatedUser, keyboard ), keyboardCmd ) =
                     User.update (User.KeyPress keyMsg) ( model.user, model.keyboard )
             in
                 ( { model | user = updatedUser, keyboard = keyboard }, Cmd.map KeyPress keyboardCmd )
