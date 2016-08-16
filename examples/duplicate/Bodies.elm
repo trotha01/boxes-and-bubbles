@@ -8,6 +8,7 @@ import Color exposing (..)
 import Collage exposing (..)
 import Time exposing (Time)
 import Random
+import PhysicsConsts exposing (noGravity, e0)
 
 
 -- MODEL
@@ -23,8 +24,18 @@ type alias Meta =
     }
 
 
+{-| TODO: pass in seed
+-}
+init : List (Body Meta)
 init =
-    someBodies
+    let
+        ( bubbles, seed2 ) =
+            Random.step (randBubbles food) (Random.initialSeed 2)
+
+        ( boxes, seed3 ) =
+            Random.step (randBoxes meta) seed2
+    in
+        (bubbles ++ boxes)
 
 
 
@@ -169,15 +180,6 @@ drawBody model =
 -- helpers
 
 
-noGravity t =
-    ( ( 0, 0.0 ), ( 0, 0 ) )
-
-
-e0 : Float
-e0 =
-    0.8
-
-
 circArea : Float -> Float
 circArea r =
     pi * r * r
@@ -195,6 +197,8 @@ food =
     }
 
 
+{-| TODO: rename bColor to bubbleColor
+-}
 bColor : Color
 bColor =
     rgb 238 130 238
@@ -226,18 +230,6 @@ randBody =
                             else
                                 randBox boxColor e0 ( 10, 50 ) ( 10, 50 ) meta
                          )
-
-
-someBodies : List (Body Meta)
-someBodies =
-    let
-        ( bubbles, seed2 ) =
-            Random.step (randBubbles food) (Random.initialSeed 2)
-
-        ( boxes, seed3 ) =
-            Random.step (randBoxes meta) seed2
-    in
-        (bubbles ++ boxes)
 
 
 {-| regenerate is used when a body has reached the bounds

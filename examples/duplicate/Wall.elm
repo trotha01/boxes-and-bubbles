@@ -7,6 +7,7 @@ import BoxesAndBubbles.Math2D exposing (mul2, plus)
 import Color exposing (..)
 import Collage exposing (..)
 import Time exposing (Time)
+import PhysicsConsts exposing (e0)
 
 
 -- MODEL
@@ -97,16 +98,3 @@ drawBody model =
                             ]
     in
         Collage.move model.pos ready
-
-
-
--- helpers
-
-
-noGravity t =
-    ( ( 0, 0.0 ), ( 0, 0 ) )
-
-
-e0 : Float
-e0 =
-    0.8

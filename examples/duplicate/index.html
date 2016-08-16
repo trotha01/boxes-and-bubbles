@@ -12255,29 +12255,41 @@ var _jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble = F5(
 			radius,
 			density);
 	});
+var _jastice$boxes_and_bubbles$PhysicsConsts$counterforces = function (t) {
+	return {
+		ctor: '_Tuple2',
+		_0: {ctor: '_Tuple2', _0: 0, _1: -1.0e-2},
+		_1: {ctor: '_Tuple2', _0: 0, _1: t / 1000}
+	};
+};
+var _jastice$boxes_and_bubbles$PhysicsConsts$sinforce = function (t) {
+	return {
+		ctor: '_Tuple2',
+		_0: _elm_lang$core$Basics$sin(
+			_elm_lang$core$Basics$radians(t / 1000)) * 50,
+		_1: 0
+	};
+};
+var _jastice$boxes_and_bubbles$PhysicsConsts$constgravity = function (t) {
+	return {
+		ctor: '_Tuple2',
+		_0: {ctor: '_Tuple2', _0: 0, _1: -0.2},
+		_1: {ctor: '_Tuple2', _0: 0, _1: 0}
+	};
+};
+var _jastice$boxes_and_bubbles$PhysicsConsts$noGravity = function (t) {
+	return {
+		ctor: '_Tuple2',
+		_0: {ctor: '_Tuple2', _0: 0, _1: 0.0},
+		_1: {ctor: '_Tuple2', _0: 0, _1: 0}
+	};
+};
+var _jastice$boxes_and_bubbles$PhysicsConsts$e0 = 0.8;
+var _jastice$boxes_and_bubbles$PhysicsConsts$inf = 1 / 0;
 var _jastice$boxes_and_bubbles$Bodies$_p0 = {ctor: '_Tuple2', _0: 20, _1: 10};
 var _jastice$boxes_and_bubbles$Bodies$bubbleCount = _jastice$boxes_and_bubbles$Bodies$_p0._0;
 var _jastice$boxes_and_bubbles$Bodies$boxCount = _jastice$boxes_and_bubbles$Bodies$_p0._1;
 var _jastice$boxes_and_bubbles$Bodies$boxColor = _elm_lang$core$Color$lightBlue;
-var _jastice$boxes_and_bubbles$Bodies$bColor = A3(_elm_lang$core$Color$rgb, 238, 130, 238);
-var _jastice$boxes_and_bubbles$Bodies$food = {isFood: true, eaten: false};
-var _jastice$boxes_and_bubbles$Bodies$meta = {isFood: false, eaten: false};
-var _jastice$boxes_and_bubbles$Bodies$circArea = function (r) {
-	return (_elm_lang$core$Basics$pi * r) * r;
-};
-var _jastice$boxes_and_bubbles$Bodies$e0 = 0.8;
-var _jastice$boxes_and_bubbles$Bodies$randBubbles = function (meta) {
-	return A2(
-		_elm_lang$core$Random$list,
-		_jastice$boxes_and_bubbles$Bodies$bubbleCount,
-		A5(
-			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble,
-			_jastice$boxes_and_bubbles$Bodies$bColor,
-			_jastice$boxes_and_bubbles$Bodies$e0,
-			{ctor: '_Tuple2', _0: -200, _1: 200},
-			{ctor: '_Tuple2', _0: -3, _1: 3},
-			meta));
-};
 var _jastice$boxes_and_bubbles$Bodies$randBoxes = function (meta) {
 	return A2(
 		_elm_lang$core$Random$list,
@@ -12285,26 +12297,26 @@ var _jastice$boxes_and_bubbles$Bodies$randBoxes = function (meta) {
 		A5(
 			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBox,
 			_jastice$boxes_and_bubbles$Bodies$boxColor,
-			_jastice$boxes_and_bubbles$Bodies$e0,
+			_jastice$boxes_and_bubbles$PhysicsConsts$e0,
 			{ctor: '_Tuple2', _0: -200, _1: 200},
 			{ctor: '_Tuple2', _0: 10, _1: 30},
 			meta));
 };
-var _jastice$boxes_and_bubbles$Bodies$someBodies = function () {
-	var _p1 = A2(
-		_elm_lang$core$Random$step,
-		_jastice$boxes_and_bubbles$Bodies$randBubbles(_jastice$boxes_and_bubbles$Bodies$food),
-		_elm_lang$core$Random$initialSeed(2));
-	var bubbles = _p1._0;
-	var seed2 = _p1._1;
-	var _p2 = A2(
-		_elm_lang$core$Random$step,
-		_jastice$boxes_and_bubbles$Bodies$randBoxes(_jastice$boxes_and_bubbles$Bodies$meta),
-		seed2);
-	var boxes = _p2._0;
-	var seed3 = _p2._1;
-	return A2(_elm_lang$core$Basics_ops['++'], bubbles, boxes);
-}();
+var _jastice$boxes_and_bubbles$Bodies$bColor = A3(_elm_lang$core$Color$rgb, 238, 130, 238);
+var _jastice$boxes_and_bubbles$Bodies$randBubbles = function (meta) {
+	return A2(
+		_elm_lang$core$Random$list,
+		_jastice$boxes_and_bubbles$Bodies$bubbleCount,
+		A5(
+			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble,
+			_jastice$boxes_and_bubbles$Bodies$bColor,
+			_jastice$boxes_and_bubbles$PhysicsConsts$e0,
+			{ctor: '_Tuple2', _0: -200, _1: 200},
+			{ctor: '_Tuple2', _0: -3, _1: 3},
+			meta));
+};
+var _jastice$boxes_and_bubbles$Bodies$food = {isFood: true, eaten: false};
+var _jastice$boxes_and_bubbles$Bodies$meta = {isFood: false, eaten: false};
 var _jastice$boxes_and_bubbles$Bodies$randBody = A2(
 	_elm_lang$core$Random$andThen,
 	_elm_lang$core$Random$bool,
@@ -12312,22 +12324,22 @@ var _jastice$boxes_and_bubbles$Bodies$randBody = A2(
 		return coin ? A5(
 			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBubble,
 			_jastice$boxes_and_bubbles$Bodies$bColor,
-			_jastice$boxes_and_bubbles$Bodies$e0,
+			_jastice$boxes_and_bubbles$PhysicsConsts$e0,
 			{ctor: '_Tuple2', _0: -200, _1: 200},
 			{ctor: '_Tuple2', _0: -3, _1: 3},
 			_jastice$boxes_and_bubbles$Bodies$food) : A5(
 			_jastice$boxes_and_bubbles$BoxesAndBubbles$randBox,
 			_jastice$boxes_and_bubbles$Bodies$boxColor,
-			_jastice$boxes_and_bubbles$Bodies$e0,
+			_jastice$boxes_and_bubbles$PhysicsConsts$e0,
 			{ctor: '_Tuple2', _0: 10, _1: 50},
 			{ctor: '_Tuple2', _0: 10, _1: 50},
 			_jastice$boxes_and_bubbles$Bodies$meta);
 	});
 var _jastice$boxes_and_bubbles$Bodies$regenerate = F2(
 	function (seed, body) {
-		var _p3 = A2(_elm_lang$core$Random$step, _jastice$boxes_and_bubbles$Bodies$randBody, seed);
-		var newBody = _p3._0;
-		var seed$ = _p3._1;
+		var _p1 = A2(_elm_lang$core$Random$step, _jastice$boxes_and_bubbles$Bodies$randBody, seed);
+		var newBody = _p1._0;
+		var seed$ = _p1._1;
 		return {
 			ctor: '_Tuple2',
 			_0: _elm_lang$core$Native_Utils.update(
@@ -12342,29 +12354,25 @@ var _jastice$boxes_and_bubbles$Bodies$regenerate = F2(
 			_1: seed$
 		};
 	});
-var _jastice$boxes_and_bubbles$Bodies$noGravity = function (t) {
-	return {
-		ctor: '_Tuple2',
-		_0: {ctor: '_Tuple2', _0: 0, _1: 0.0},
-		_1: {ctor: '_Tuple2', _0: 0, _1: 0}
-	};
+var _jastice$boxes_and_bubbles$Bodies$circArea = function (r) {
+	return (_elm_lang$core$Basics$pi * r) * r;
 };
 var _jastice$boxes_and_bubbles$Bodies$drawBody = function (model) {
 	var ready = function () {
-		var _p4 = model.shape;
-		if (_p4.ctor === 'Bubble') {
+		var _p2 = model.shape;
+		if (_p2.ctor === 'Bubble') {
 			return _evancz$elm_graphics$Collage$group(
 				_elm_lang$core$Native_List.fromArray(
 					[
 						A2(
 						_evancz$elm_graphics$Collage$filled,
 						model.color,
-						_evancz$elm_graphics$Collage$circle(_p4._0))
+						_evancz$elm_graphics$Collage$circle(_p2._0))
 					]));
 		} else {
-			var _p5 = _p4._0;
-			var w = _p5._0;
-			var h = _p5._1;
+			var _p3 = _p2._0;
+			var w = _p3._0;
+			var h = _p3._1;
 			return _evancz$elm_graphics$Collage$group(
 				_elm_lang$core$Native_List.fromArray(
 					[
@@ -12390,10 +12398,10 @@ var _jastice$boxes_and_bubbles$Bodies$view = function (model) {
 var _jastice$boxes_and_bubbles$Bodies$combineShapes = F2(
 	function (a0, b0) {
 		var combined = function () {
-			var _p6 = {ctor: '_Tuple2', _0: a0.shape, _1: b0.shape};
-			if (((_p6.ctor === '_Tuple2') && (_p6._0.ctor === 'Bubble')) && (_p6._1.ctor === 'Bubble')) {
-				var a2 = _jastice$boxes_and_bubbles$Bodies$circArea(_p6._1._0);
-				var a1 = _jastice$boxes_and_bubbles$Bodies$circArea(_p6._0._0);
+			var _p4 = {ctor: '_Tuple2', _0: a0.shape, _1: b0.shape};
+			if (((_p4.ctor === '_Tuple2') && (_p4._0.ctor === 'Bubble')) && (_p4._1.ctor === 'Bubble')) {
+				var a2 = _jastice$boxes_and_bubbles$Bodies$circArea(_p4._1._0);
+				var a1 = _jastice$boxes_and_bubbles$Bodies$circArea(_p4._0._0);
 				var boxSide = _elm_lang$core$Basics$sqrt((a1 + a2) / 2);
 				return _elm_lang$core$Native_Utils.update(
 					a0,
@@ -12419,7 +12427,21 @@ var _jastice$boxes_and_bubbles$Bodies$combineShapes = F2(
 					{isFood: false})
 			});
 	});
-var _jastice$boxes_and_bubbles$Bodies$init = _jastice$boxes_and_bubbles$Bodies$someBodies;
+var _jastice$boxes_and_bubbles$Bodies$init = function () {
+	var _p5 = A2(
+		_elm_lang$core$Random$step,
+		_jastice$boxes_and_bubbles$Bodies$randBubbles(_jastice$boxes_and_bubbles$Bodies$food),
+		_elm_lang$core$Random$initialSeed(2));
+	var bubbles = _p5._0;
+	var seed2 = _p5._1;
+	var _p6 = A2(
+		_elm_lang$core$Random$step,
+		_jastice$boxes_and_bubbles$Bodies$randBoxes(_jastice$boxes_and_bubbles$Bodies$meta),
+		seed2);
+	var boxes = _p6._0;
+	var seed3 = _p6._1;
+	return A2(_elm_lang$core$Basics_ops['++'], bubbles, boxes);
+}();
 var _jastice$boxes_and_bubbles$Bodies$Meta = F2(
 	function (a, b) {
 		return {isFood: a, eaten: b};
@@ -12550,7 +12572,7 @@ var _jastice$boxes_and_bubbles$Bodies$collideBodies = F2(
 			A2(
 				_elm_lang$core$Basics$uncurry,
 				_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$update,
-				_jastice$boxes_and_bubbles$Bodies$noGravity(dt)),
+				_jastice$boxes_and_bubbles$PhysicsConsts$noGravity(dt)),
 			collidedBodies);
 		return {ctor: '_Tuple2', _0: newBodies, _1: msgs};
 	});
@@ -12570,14 +12592,6 @@ var _jastice$boxes_and_bubbles$Bodies$update = F2(
 	});
 var _jastice$boxes_and_bubbles$Bodies$Tick = function (a) {
 	return {ctor: 'Tick', _0: a};
-};
-var _jastice$boxes_and_bubbles$Bound$e0 = 0.8;
-var _jastice$boxes_and_bubbles$Bound$noGravity = function (t) {
-	return {
-		ctor: '_Tuple2',
-		_0: {ctor: '_Tuple2', _0: 0, _1: 0.0},
-		_1: {ctor: '_Tuple2', _0: 0, _1: 0}
-	};
 };
 var _jastice$boxes_and_bubbles$Bound$drawBody = function (model) {
 	var ready = function () {
@@ -12624,7 +12638,7 @@ var _jastice$boxes_and_bubbles$Bound$init = F2(
 			_jastice$boxes_and_bubbles$BoxesAndBubbles$bounds,
 			{ctor: '_Tuple2', _0: width + 400, _1: height + 400},
 			10,
-			_jastice$boxes_and_bubbles$Bound$e0,
+			_jastice$boxes_and_bubbles$PhysicsConsts$e0,
 			{ctor: '_Tuple2', _0: 0, _1: 0},
 			_jastice$boxes_and_bubbles$Bound$boundMeta);
 	});
@@ -13291,14 +13305,6 @@ var _ohanhi$keyboard_extra$Keyboard_Extra$pressedDown = function (model) {
 		_ohanhi$keyboard_extra$Keyboard_Extra$fromCode,
 		_elm_lang$core$Set$toList(model.keysDown));
 };
-var _jastice$boxes_and_bubbles$User$e0 = 0.8;
-var _jastice$boxes_and_bubbles$User$noGravity = function (t) {
-	return {
-		ctor: '_Tuple2',
-		_0: {ctor: '_Tuple2', _0: 0, _1: 0.0},
-		_1: {ctor: '_Tuple2', _0: 0, _1: 0}
-	};
-};
 var _jastice$boxes_and_bubbles$User$view = function (user) {
 	var ready = function () {
 		var _p0 = user.shape;
@@ -13435,7 +13441,7 @@ var _jastice$boxes_and_bubbles$User$update = F2(
 			var user2 = A3(
 				_elm_lang$core$Basics$uncurry,
 				_jastice$boxes_and_bubbles$BoxesAndBubbles_Engine$update,
-				_jastice$boxes_and_bubbles$User$noGravity(_p12._0),
+				_jastice$boxes_and_bubbles$PhysicsConsts$noGravity(_p12._0),
 				_p15);
 			return {
 				ctor: '_Tuple2',
@@ -13463,7 +13469,7 @@ var _jastice$boxes_and_bubbles$User$init = A7(
 	_elm_lang$core$Color$purple,
 	100,
 	1,
-	_jastice$boxes_and_bubbles$User$e0,
+	_jastice$boxes_and_bubbles$PhysicsConsts$e0,
 	{ctor: '_Tuple2', _0: -80, _1: 0},
 	{ctor: '_Tuple2', _0: 1, _1: 0},
 	_jastice$boxes_and_bubbles$User$meta);
@@ -13475,14 +13481,6 @@ var _jastice$boxes_and_bubbles$User$KeyPress = function (a) {
 };
 var _jastice$boxes_and_bubbles$User$Tick = function (a) {
 	return {ctor: 'Tick', _0: a};
-};
-var _jastice$boxes_and_bubbles$Wall$e0 = 0.8;
-var _jastice$boxes_and_bubbles$Wall$noGravity = function (t) {
-	return {
-		ctor: '_Tuple2',
-		_0: {ctor: '_Tuple2', _0: 0, _1: 0.0},
-		_1: {ctor: '_Tuple2', _0: 0, _1: 0}
-	};
 };
 var _jastice$boxes_and_bubbles$Wall$drawBody = function (model) {
 	var ready = function () {
@@ -13541,7 +13539,7 @@ var _jastice$boxes_and_bubbles$Wall$init = F2(
 			_jastice$boxes_and_bubbles$BoxesAndBubbles$bounds,
 			{ctor: '_Tuple2', _0: width, _1: height},
 			10,
-			_jastice$boxes_and_bubbles$Wall$e0,
+			_jastice$boxes_and_bubbles$PhysicsConsts$e0,
 			{ctor: '_Tuple2', _0: 0, _1: 0},
 			_jastice$boxes_and_bubbles$Wall$wallMeta);
 	});
@@ -13557,37 +13555,6 @@ var _jastice$boxes_and_bubbles$Wall$Meta = {};
 var _jastice$boxes_and_bubbles$Wall$Resize = function (a) {
 	return {ctor: 'Resize', _0: a};
 };
-var _jastice$boxes_and_bubbles$Duplicate$counterforces = function (t) {
-	return {
-		ctor: '_Tuple2',
-		_0: {ctor: '_Tuple2', _0: 0, _1: -1.0e-2},
-		_1: {ctor: '_Tuple2', _0: 0, _1: t / 1000}
-	};
-};
-var _jastice$boxes_and_bubbles$Duplicate$sinforce = function (t) {
-	return {
-		ctor: '_Tuple2',
-		_0: _elm_lang$core$Basics$sin(
-			_elm_lang$core$Basics$radians(t / 1000)) * 50,
-		_1: 0
-	};
-};
-var _jastice$boxes_and_bubbles$Duplicate$constgravity = function (t) {
-	return {
-		ctor: '_Tuple2',
-		_0: {ctor: '_Tuple2', _0: 0, _1: -0.2},
-		_1: {ctor: '_Tuple2', _0: 0, _1: 0}
-	};
-};
-var _jastice$boxes_and_bubbles$Duplicate$noGravity = function (t) {
-	return {
-		ctor: '_Tuple2',
-		_0: {ctor: '_Tuple2', _0: 0, _1: 0.0},
-		_1: {ctor: '_Tuple2', _0: 0, _1: 0}
-	};
-};
-var _jastice$boxes_and_bubbles$Duplicate$e0 = 0.8;
-var _jastice$boxes_and_bubbles$Duplicate$inf = 1 / 0;
 var _jastice$boxes_and_bubbles$Duplicate$points = function (model) {
 	var pointText = _evancz$elm_graphics$Collage$text(
 		_evancz$elm_graphics$Text$fromString(
@@ -13818,11 +13785,7 @@ var _jastice$boxes_and_bubbles$Duplicate$update = F2(
 					var model2 = _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							bodies: A2(
-								_elm_lang$core$Basics_ops['++'],
-								model.bodies,
-								_elm_lang$core$Native_List.fromArray(
-									[newBody])),
+							bodies: A2(_elm_lang$core$List_ops['::'], newBody, model.bodies),
 							seed: newSeed
 						});
 					return {ctor: '_Tuple2', _0: model2, _1: _elm_lang$core$Platform_Cmd$none};
@@ -13853,13 +13816,13 @@ var _jastice$boxes_and_bubbles$Duplicate$subs = _elm_lang$core$Platform_Sub$batc
 var _jastice$boxes_and_bubbles$Duplicate$main = {
 	main: function () {
 		var _p23 = _ohanhi$keyboard_extra$Keyboard_Extra$init;
-		var keyboard = _p23._0;
+		var initialKeyboard = _p23._0;
 		var keyboardCmd = _p23._1;
 		return _elm_lang$html$Html_App$program(
 			{
 				init: {
 					ctor: '_Tuple2',
-					_0: _jastice$boxes_and_bubbles$Duplicate$initialModel(keyboard),
+					_0: _jastice$boxes_and_bubbles$Duplicate$initialModel(initialKeyboard),
 					_1: _elm_lang$core$Platform_Cmd$batch(
 						_elm_lang$core$Native_List.fromArray(
 							[

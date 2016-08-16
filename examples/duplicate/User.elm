@@ -9,6 +9,7 @@ import Collage exposing (..)
 import Time exposing (Time)
 import Keyboard.Extra as Keyboard
 import Bodies
+import PhysicsConsts exposing (noGravity, e0)
 
 
 -- MODEL
@@ -192,16 +193,3 @@ view user =
                             ]
     in
         Collage.move user.pos ready
-
-
-
--- helpers
-
-
-noGravity t =
-    ( ( 0, 0.0 ), ( 0, 0 ) )
-
-
-e0 : Float
-e0 =
-    0.8
