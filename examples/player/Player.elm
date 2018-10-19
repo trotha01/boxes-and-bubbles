@@ -1,19 +1,20 @@
 module Player exposing (main)
 
-import AnimationFrame
 import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Body as Body exposing (..)
 import BoxesAndBubbles.Engine as Engine
 import BoxesAndBubbles.Math2D exposing (mul2)
+import Browser exposing (..)
+import Browser.Events exposing (..)
 import Collage exposing (..)
+import Collage.Layout exposing (..)
+import Collage.Render exposing (..)
 import Collage.Text exposing (fromString)
 import Color exposing (..)
-import Element exposing (..)
-import Html.App exposing (program)
-import Keyboard.Extra as Keyboard
+import Keyboard
+import Keyboard.Arrows as Keyboard
 import List exposing (map)
 import String
-import Time exposing (Time)
 
 
 
@@ -23,6 +24,7 @@ import Time exposing (Time)
 type alias Model meta =
     { bodies : List (Body meta)
     , user : Body meta
+    , keys : List Keyboard.Key
     }
 
 
@@ -30,8 +32,12 @@ defaultLabel =
     ""
 
 
-( width, height ) =
-    ( 600, 600 )
+width =
+    600
+
+
+height =
+    600
 
 
 {-| someBodies
@@ -55,38 +61,39 @@ someBodies =
         ++ bounds ( width - 50, height - 50 ) 100 e0 ( 0, 0 ) defaultLabel
 
 
-user =
+initUser =
     bubble black 100 1 e0 ( -80, 0 ) ( 0, 0 ) defaultLabel
 
 
 model0 : Model String
 model0 =
     { bodies = map (\b -> { b | meta = bodyLabel b.restitution b.inverseMass }) someBodies
-    , user = user
+    , user = initUser
+    , keys = []
     }
 
 
 bodyLabel restitution inverseMass =
-    [ "e = ", toString restitution, "\nm = ", toString (round (1 / inverseMass)) ] |> String.concat
+    [ "e = ", String.fromFloat restitution, "\nm = ", String.fromInt (round (1 / inverseMass)) ] |> String.concat
 
 
 
 -- VIEW
 
 
-scene : ( Model String, Keyboard.Model ) -> Element
-scene ( model, keyboard ) =
-    collage width height <| map drawBody (model.user :: model.bodies)
+scene : Model String -> Collage msg
+scene model =
+    group <| map drawBody (model.user :: model.bodies)
 
 
-drawBody : Body String -> Form
+drawBody : Body String -> Collage msg
 drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
     let
         veloLine =
-            segment ( 0, 0 ) (mul2 velocity 5) |> traced (solid red)
+            segment ( 0, 0 ) (mul2 velocity 5) |> traced (solid 1 (uniform red))
 
         info =
-            meta |> fromString |> centered |> toForm
+            meta |> fromString |> rendered |> Collage.Layout.center
 
         ready =
             case shape of
@@ -94,9 +101,9 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
                     group
                         [ circle radius
                             -- |> filled blue
-                            |> outlined (solid black)
+                            |> outlined (solid 1 (uniform black))
                         , info
-                            |> Collage.move ( 0, radius + 16 )
+                            |> Collage.shift ( 0, radius + 16 )
                         , veloLine
                         ]
 
@@ -106,12 +113,12 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
                             extents
                     in
                     group
-                        [ rect (w * 2) (h * 2) |> outlined (solid black)
-                        , info |> Collage.move ( 0, h + 16 )
+                        [ rectangle (w * 2) (h * 2) |> outlined (solid 1 (uniform black))
+                        , info |> Collage.shift ( 0, h + 16 )
                         , veloLine
                         ]
     in
-    Collage.move pos ready
+    Collage.shift pos ready
 
 
 
@@ -119,48 +126,48 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
 
 
 type Msg
-    = Tick Time
+    = Tick Float
     | KeyPress Keyboard.Msg
 
 
-update : Msg -> ( Model meta, Keyboard.Model ) -> ( ( Model meta, Keyboard.Model ), Cmd Msg )
-update msg ( model, keyboard ) =
+update : Msg -> Model meta -> ( Model meta, Cmd Msg )
+update msg model =
     case msg of
         Tick dt ->
             let
                 ( collidedUser, collidedBodies ) =
                     collideUser model.user model.bodies
 
+                ( gravity, ambiant ) =
+                    noGravity dt
+
                 newUser =
-                    uncurry Engine.update (noGravity dt) collidedUser
+                    Engine.update gravity ambiant collidedUser
             in
-            ( ( { model
-                    | user = newUser
-                    , bodies = uncurry step (noGravity dt) collidedBodies
-                }
-              , keyboard
-              )
+            ( { model
+                | user = newUser
+                , bodies = step gravity ambiant collidedBodies
+              }
             , Cmd.none
             )
 
         KeyPress keyMsg ->
             let
-                ( kybrd, keyboardCmd ) =
-                    Keyboard.update keyMsg keyboard
+                pressedKeys =
+                    Keyboard.update keyMsg model.keys
 
                 direction =
-                    Keyboard.arrows kybrd
+                    Keyboard.arrows pressedKeys
 
                 updatedUser =
                     Body.move model.user direction
             in
-            ( ( { model
-                    | user = updatedUser
-                    , bodies = model.bodies
-                }
-              , keyboard
-              )
-            , Cmd.map KeyPress keyboardCmd
+            ( { model
+                | user = updatedUser
+                , bodies = model.bodies
+                , keys = pressedKeys
+              }
+            , Cmd.none
             )
 
 
@@ -198,7 +205,7 @@ subs : Sub Msg
 subs =
     Sub.batch
         [ Sub.map KeyPress Keyboard.subscriptions
-        , AnimationFrame.diffs Tick
+        , onAnimationFrameDelta Tick
         ]
 
 
@@ -206,17 +213,21 @@ subs =
 -- MAIN
 
 
-main : Program Never
+type alias Flags =
+    {}
+
+
+init : Flags -> ( Model String, Cmd Msg )
+init flags =
+    ( model0, Cmd.none )
+
+
 main =
-    let
-        ( keyboard, keyboardCmd ) =
-            Keyboard.init
-    in
-    program
-        { init = ( ( model0, keyboard ), Cmd.map KeyPress keyboardCmd )
+    Browser.element
+        { init = init
         , update = update
         , subscriptions = always subs
-        , view = scene >> Element.toHtml
+        , view = scene >> Collage.Render.svgBox ( width, height )
         }
 
 
