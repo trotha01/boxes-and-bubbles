@@ -1,4 +1,4 @@
-module PhysicsConsts exposing (..)
+module PhysicsConsts exposing (constgravity, counterforces, e0, inf, noGravity, sinforce)
 
 
 inf : Float

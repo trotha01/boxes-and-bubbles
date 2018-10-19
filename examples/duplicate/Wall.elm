@@ -1,13 +1,13 @@
-module Wall exposing (..)
+module Wall exposing (Meta, Model, Msg(..), collideWith, collideWithWall, drawBody, init, update, view, wallMeta)
 
+import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Body as Body exposing (..)
 import BoxesAndBubbles.Engine as Engine
-import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Math2D exposing (mul2, plus)
-import Color exposing (..)
 import Collage exposing (..)
-import Time exposing (Time)
+import Color exposing (..)
 import PhysicsConsts exposing (e0)
+
 
 
 -- MODEL
@@ -59,33 +59,29 @@ collideWithWall wall user =
             Engine.collision wall user
 
         ( wall2, user2 ) =
-            (Engine.resolveCollision collisionResult wall user)
+            Engine.resolveCollision collisionResult wall user
     in
-        user2
+    user2
 
 
 
 -- VIEW
 
 
-view : Model -> List Form
+view : Model -> List (Collage msg)
 view model =
     List.map drawBody model
 
 
-drawBody : Body Meta -> Form
+drawBody : Body Meta -> Collage msg
 drawBody model =
     let
-        veloLine =
-            segment ( 0, 0 ) (mul2 model.velocity 5) |> traced (solid red)
-
         ready =
             case model.shape of
                 Bubble radius ->
                     group
                         [ circle radius
-                            |> filled model.color
-                          -- , veloLine
+                            |> filled (uniform model.color)
                         ]
 
                 Box extents ->
@@ -93,8 +89,8 @@ drawBody model =
                         ( w, h ) =
                             extents
                     in
-                        group
-                            [ rect (w * 2) (h * 2) |> filled model.color
-                            ]
+                    group
+                        [ rectangle (w * 2) (h * 2) |> outlined (solid 1 (uniform black))
+                        ]
     in
-        Collage.move model.pos ready
+    Collage.shift model.pos ready
