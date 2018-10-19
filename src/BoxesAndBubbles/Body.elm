@@ -1,6 +1,10 @@
 module BoxesAndBubbles.Body exposing (Body, Shape(..), move, engulf)
 
-{-| # Boxes and Bubbles Bodies.
+{-|
+
+
+# Boxes and Bubbles Bodies.
+
 Defines bodies as used by the Boxes and Bubbles engine. You will need these data types to
 display and modify bodies being calculated. For creating them, you may prefer the constructor
 functions in the BoxesAndBubbles module.
@@ -9,7 +13,7 @@ functions in the BoxesAndBubbles module.
 
 -}
 
-import BoxesAndBubbles.Math2D exposing (Vec2, plus, norm, mul2, lenSq)
+import BoxesAndBubbles.Math2D exposing (Vec2, lenSq, mul2, norm, plus)
 import Color exposing (Color)
 
 
@@ -19,6 +23,7 @@ Mass is stored as inverse, because it is more convenient for calculation.
 Type parameter `meta` can be used to attach arbitrary other information used
 by your application to bodies. For example: label, hit points, an object type ADT, or more low-level,
 an id used to associate the body with arbitrary other data via a Dict.
+
 -}
 type alias Body meta =
     { pos : Vec2
@@ -52,6 +57,7 @@ type alias Dir =
     , y : Int
     }
 
+
 {-| move a body a certain direction
 -}
 move : Body meta -> Dir -> Body meta
@@ -61,54 +67,63 @@ move body dir =
             body.pos
 
         -- TODO: if down button, stop at 0, don't go backwards
-
         ( vX, vY ) =
             body.velocity
 
         -- _ = Debug.log "curVel" body.velocity
-
         -- len =
         --     (sqrt (lenSq body.velocity))
-
         -- newLen =
         --     (len + (toFloat dir.y))
-
         -- mulFactor =
         --     Debug.log "mulFactor" (len/newLen)
-
         -- newPos =
         --     ( x + (toFloat dir.x), y + (toFloat dir.y) )
-
         -- newVel =
         --     Debug.log "vel" (mul2 body.velocity (newLen / len))
-
         -- turn =
         --     (plus newVel (mul2 (norm body.velocity) (toFloat dir.x)))
-
         newVel =
-            ( clamp -2 2 (vX + (toFloat dir.x) / 2), clamp -4 4 (vY + (toFloat dir.y) / 2) )
+            ( clamp -2 2 (vX + toFloat dir.x / 2), clamp -4 4 (vY + toFloat dir.y / 2) )
     in
-        { body | velocity = newVel }
+    { body | velocity = newVel }
 
-{-| area returns the area of the object -}
+
+{-| area returns the area of the object
+-}
 area : Body meta -> Float
 area body =
-    case body.shape of 
-        (Bubble r) -> pi * r * r 
-        (Box (w, l)) -> w * l
+    case body.shape of
+        Bubble r ->
+            pi * r * r
+
+        Box ( w, l ) ->
+            w * l
+
 
 increaseSize : Body meta -> Float -> Body meta
 increaseSize body incr =
-    let a = area body
-        newArea = a + incr
-     in case body.shape of 
-        (Bubble _) ->
-            {body|shape = Bubble (sqrt (newArea/pi))}
-        (Box _) ->
-            let side = sqrt newArea
-             in {body|shape = Box (side, side)}
+    let
+        a =
+            area body
 
-{-| engulf enlargens the first object by half the area of the second -}
+        newArea =
+            a + incr
+    in
+    case body.shape of
+        Bubble _ ->
+            { body | shape = Bubble (sqrt (newArea / pi)) }
+
+        Box _ ->
+            let
+                side =
+                    sqrt newArea
+            in
+            { body | shape = Box ( side, side ) }
+
+
+{-| engulf enlargens the first object by half the area of the second
+-}
 engulf : Body meta -> Body meta -> Body meta
 engulf predator food =
     increaseSize predator (area food)

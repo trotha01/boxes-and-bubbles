@@ -1,6 +1,10 @@
-module BoxesAndBubbles.Engine exposing (update, collide, collideWith, collision, resolveCollision)
+module BoxesAndBubbles.Engine exposing
+    ( update, collide, collideWith
+    , collision, resolveCollision
+    )
 
 {-| The actual physics implementation of Boxes and Bubbles.
+
 
 ## Exposed functions
 
@@ -10,13 +14,15 @@ Please consult the source code to understand these functions.
 No implication of API stability.
 
 @docs update, collide, collideWith
+
 -}
 
 -- based loosely on http://gamedevelopment.tutsplus.com/tutorials/gamedev-6331
 
-import List exposing (..)
-import BoxesAndBubbles.Math2D exposing (..)
 import BoxesAndBubbles.Body exposing (Body, Shape(..))
+import BoxesAndBubbles.Math2D exposing (..)
+import List exposing (..)
+
 
 
 -- collision calculation for different types of bodies
@@ -43,36 +49,40 @@ collisionBubbleBubble b0b1 radius0 radius1 =
         ( smallR, largeR ) =
             if radius0 < radius1 then
                 ( radius0, radius1 )
+
             else
                 ( radius1, radius0 )
 
         -- simple optimization: doesn't compute sqrt unless necessary
     in
-        if distanceSq == 0 then
-            CollisionResult ( 1, 0 ) radius0
-            -- same position, arbitrary normal
-        else if distanceSq >= radiusb0b1 * radiusb0b1 then
-            CollisionResult ( 1, 0 ) 0
-            -- no intersection, arbitrary normal
-        else
-            let
-                d =
-                    sqrt distanceSq
+    if distanceSq == 0 then
+        CollisionResult ( 1, 0 ) radius0
+        -- same position, arbitrary normal
 
-                penetration =
-                    radiusb0b1 - d
+    else if distanceSq >= radiusb0b1 * radiusb0b1 then
+        CollisionResult ( 1, 0 ) 0
+        -- no intersection, arbitrary normal
 
-                normal =
-                    div2 b0b1 d
+    else
+        let
+            d =
+                sqrt distanceSq
 
-                ( normal2, penetration2 ) =
-                    if penetration > smallR then
-                        ( (neg normal), penetration )
-                        --  inner bump, negate the normal
-                    else
-                        ( normal, penetration )
-            in
-                CollisionResult (normal2) (penetration2)
+            penetration =
+                radiusb0b1 - d
+
+            normal =
+                div2 b0b1 d
+
+            ( normal2, penetration2 ) =
+                if penetration > smallR then
+                    ( neg normal, penetration )
+                    --  inner bump, negate the normal
+
+                else
+                    ( normal, penetration )
+        in
+        CollisionResult normal2 penetration2
 
 
 
@@ -95,18 +105,22 @@ collisionBoxBox ( pos0, extents0 ) ( pos1, extents1 ) =
 
         -- overlaps
     in
-        if ox > 0 && oy > 0 then
-            if ox < oy then
-                if nx < 0 then
-                    CollisionResult ( -1, 0 ) ox
-                else
-                    CollisionResult ( 1, 0 ) ox
-            else if ny < 0 then
-                CollisionResult ( 0, -1 ) oy
+    if ox > 0 && oy > 0 then
+        if ox < oy then
+            if nx < 0 then
+                CollisionResult ( -1, 0 ) ox
+
             else
-                CollisionResult ( 0, 1 ) oy
+                CollisionResult ( 1, 0 ) ox
+
+        else if ny < 0 then
+            CollisionResult ( 0, -1 ) oy
+
         else
-            CollisionResult ( 1, 0 ) 0
+            CollisionResult ( 0, 1 ) oy
+
+    else
+        CollisionResult ( 1, 0 ) 0
 
 
 
@@ -137,6 +151,7 @@ collisionBoxBubble ( posBox, boxExtents ) ( posBubble, bubbleRadius ) =
             if dist /= c then
                 ( c, False )
                 --circle is outside
+
             else
             -- circle is inside, clamp center to closest edge
             if
@@ -144,10 +159,13 @@ collisionBoxBubble ( posBox, boxExtents ) ( posBubble, bubbleRadius ) =
             then
                 if cx > 0 then
                     ( ( boxX, cy ), True )
+
                 else
                     ( ( -boxX, cy ), True )
+
             else if cy > 0 then
                 ( ( cx, boxY ), True )
+
             else
                 ( ( cx, -boxY ), True )
 
@@ -157,17 +175,19 @@ collisionBoxBubble ( posBox, boxExtents ) ( posBubble, bubbleRadius ) =
         normalLenSq =
             lenSq normal
     in
-        if normalLenSq > bubbleRadius * bubbleRadius && (not inside) then
-            CollisionResult ( 1, 0 ) 0
+    if normalLenSq > bubbleRadius * bubbleRadius && not inside then
+        CollisionResult ( 1, 0 ) 0
+
+    else
+        let
+            penetration =
+                bubbleRadius + sqrt normalLenSq
+        in
+        if inside then
+            CollisionResult (mul2 (norm normal) -1) penetration
+
         else
-            let
-                penetration =
-                    bubbleRadius + sqrt normalLenSq
-            in
-                if inside then
-                    CollisionResult (mul2 (norm normal) -1) penetration
-                else
-                    CollisionResult (norm normal) penetration
+            CollisionResult (norm normal) penetration
 
 
 
@@ -182,7 +202,7 @@ collision body0 body1 =
                 b0b1 =
                     minus body1.pos body0.pos
             in
-                collisionBubbleBubble b0b1 b0 b1
+            collisionBubbleBubble b0b1 b0 b1
 
         ( Box b0, Box b1 ) ->
             collisionBoxBox ( body0.pos, b0 ) ( body1.pos, b1 )
@@ -197,7 +217,7 @@ collision body0 body1 =
 
                 -- negate the normal because the bodies were put in switched relative to their poisition in the list
             in
-                { res | normal = neg res.normal }
+            { res | normal = neg res.normal }
 
 
 
@@ -213,37 +233,39 @@ resolveCollision { normal, penetration } b0 b1 =
         velocityAlongNormal =
             dot relativeVelocity normal
     in
-        if penetration == 0 || velocityAlongNormal > 0 then
-            ( b0, b1 )
-            -- no collision or velocities separating
-        else
-            let
-                restitution =
-                    min b0.restitution b1.restitution
+    if penetration == 0 || velocityAlongNormal > 0 then
+        ( b0, b1 )
+        -- no collision or velocities separating
 
-                -- collision restitution
-                invMassSum =
-                    (b0.inverseMass + b1.inverseMass)
+    else
+        let
+            restitution =
+                min b0.restitution b1.restitution
 
-                j =
-                    (-(1 + restitution) * velocityAlongNormal) / invMassSum
+            -- collision restitution
+            invMassSum =
+                b0.inverseMass + b1.inverseMass
 
-                -- impulse scalar
-                impulse =
-                    mul2 normal j
+            j =
+                (-(1 + restitution) * velocityAlongNormal) / invMassSum
 
-                -- impulse vector
-            in
-                ( { b0 | velocity = minus b0.velocity (mul2 impulse b0.inverseMass) }
-                , { b1 | velocity = plus b1.velocity (mul2 impulse b1.inverseMass) }
-                )
+            -- impulse scalar
+            impulse =
+                mul2 normal j
+
+            -- impulse vector
+        in
+        ( { b0 | velocity = minus b0.velocity (mul2 impulse b0.inverseMass) }
+        , { b1 | velocity = plus b1.velocity (mul2 impulse b1.inverseMass) }
+        )
 
 
 {-| Collide a0 with all the bodies, modifying b along the way.
 
-   return (updated a0, [updated bodies])
+return (updated a0, [updated bodies])
 
-   Internal method, exposed only for your convenience. No implication of API stability.
+Internal method, exposed only for your convenience. No implication of API stability.
+
 -}
 collideWith : Body a -> List (Body a) -> List (Body a) -> List (Body a)
 collideWith a0 bodies acc =
@@ -259,13 +281,14 @@ collideWith a0 bodies acc =
                 ( a1, b1 ) =
                     resolveCollision collisionResult a0 b0
             in
-                collideWith a1 bs (b1 :: acc)
+            collideWith a1 bs (b1 :: acc)
 
 
 {-| Recursive collision resolution.
 
 Internal method, exposed only for your convenience.
 No implication of API stability.
+
 -}
 collide : List (Body a) -> List (Body a) -> List (Body a)
 collide acc bodies =
@@ -286,6 +309,7 @@ collide acc bodies =
 
 May be used to gain a more fine-grained control over what forces affect.
 No implication of API stability.
+
 -}
 update : Vec2 -> Vec2 -> Body a -> Body a
 update gravity force body =
@@ -293,6 +317,7 @@ update gravity force body =
         accelGravity =
             if body.inverseMass == 0 then
                 ( 0, 0 )
+
             else
                 gravity
 
@@ -306,4 +331,4 @@ update gravity force body =
         posNew =
             plus body.pos body.velocity
     in
-        { body | pos = posNew, velocity = velocityNew }
+    { body | pos = posNew, velocity = velocityNew }

@@ -1,9 +1,14 @@
 module Example exposing (main)
 
-{-| # Overview
+{-|
+
+
+# Overview
+
 A basic example of using BoxesAndBubbles.
 The drawing is supplied by this module (the BoxesAndBubbles library provides only the model).
 The scene is updated after each animation frame.
+
 
 # Running
 
@@ -11,20 +16,20 @@ The scene is updated after each animation frame.
 
 -}
 
-import Html.App exposing (program)
+import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Body as Body exposing (..)
 import BoxesAndBubbles.Engine as Engine
-import BoxesAndBubbles exposing (..)
-import BoxesAndBubbles.Math2D exposing (mul2)
-import List exposing (map)
+import BoxesAndBubbles.Math2D exposing (Vec2, mul2)
+import Browser exposing (..)
+import Browser.Events exposing (..)
 import Collage exposing (..)
-import Element exposing (..)
+import Collage.Layout exposing (..)
+import Collage.Render exposing (..)
+import Collage.Text exposing (fromString)
 import Color exposing (..)
-import Text exposing (fromString)
-import AnimationFrame
+import Keyboard
+import List exposing (map)
 import String
-import Time exposing (Time)
-import Keyboard.Extra as Keyboard
 
 
 inf =
@@ -46,7 +51,16 @@ e0 =
 
 
 type alias Model meta =
-    List (Body meta)
+    { bodies : List (Body meta)
+    , keys : List Keyboard.Key
+    }
+
+
+initModel : Model String
+initModel =
+    { bodies = labeledBodies
+    , keys = []
+    }
 
 
 defaultLabel =
@@ -80,7 +94,7 @@ someBodies =
 
 
 bodyLabel restitution inverseMass =
-    [ "e = ", toString restitution, "\nm = ", toString (round (1 / inverseMass)) ] |> String.concat
+    [ "e = ", String.fromFloat restitution, "\nm = ", String.fromInt (round (1 / inverseMass)) ] |> String.concat
 
 
 type alias Labeled =
@@ -98,7 +112,7 @@ type alias LabeledBody =
 -- and attach it to all the bodies
 
 
-labeledBodies : Model String
+labeledBodies : List (Body String)
 labeledBodies =
     map (\b -> { b | meta = bodyLabel b.restitution b.inverseMass }) someBodies
 
@@ -107,14 +121,14 @@ labeledBodies =
 -- why yes, it draws a body with label. Or creates the Element, rather
 
 
-drawBody : Body String -> Form
+drawBody : Body String -> Collage msg
 drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
     let
         veloLine =
-            segment ( 0, 0 ) (mul2 velocity 5) |> traced (solid red)
+            segment ( 0, 0 ) (mul2 velocity 5) |> traced (solid 1 (uniform red))
 
         info =
-            meta |> fromString |> centered |> toForm
+            meta |> fromString |> rendered |> Collage.Layout.center
 
         ready =
             case shape of
@@ -122,10 +136,9 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
                     group
                         [ circle radius
                             -- |> filled blue
-                            |>
-                                outlined (solid black)
+                            |> outlined (solid 1 (uniform black))
                         , info
-                            |> Collage.move ( 0, radius + 16 )
+                            |> Collage.shift ( 0, radius + 16 )
                         , veloLine
                         ]
 
@@ -134,18 +147,19 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
                         ( w, h ) =
                             extents
                     in
-                        group
-                            [ rect (w * 2) (h * 2) |> outlined (solid black)
-                            , info |> Collage.move ( 0, h + 16 )
-                            , veloLine
-                            ]
+                    group
+                        [ rectangle (w * 2) (h * 2) |> outlined (solid 1 (uniform black))
+                        , info |> Collage.shift ( 0, h + 16 )
+                        , veloLine
+                        ]
     in
-        Collage.move pos ready
+    Collage.shift pos ready
 
 
-scene : ( Model String, Keyboard.Model ) -> Element
-scene ( bodies, keyboard ) =
-    collage width height <| map drawBody bodies
+scene : Model String -> Collage msg
+scene model =
+    -- collage width height <| map drawBody bodies
+    group <| map drawBody model.bodies
 
 
 
@@ -181,7 +195,7 @@ counterforces t =
 
 
 type Msg
-    = Tick Time
+    = Tick Float
     | KeyPress Keyboard.Msg
 
 
@@ -189,38 +203,43 @@ subs : Sub Msg
 subs =
     Sub.batch
         [ Sub.map KeyPress Keyboard.subscriptions
-        , AnimationFrame.diffs Tick
+        , onAnimationFrameDelta Tick
         ]
 
 
-update : Msg -> ( Model meta, Keyboard.Model ) -> ( ( Model meta, Keyboard.Model ), Cmd Msg )
-update msg ( bodies, keyboard ) =
+update : Msg -> Model meta -> ( Model meta, Cmd Msg )
+update msg model =
     case msg of
         Tick dt ->
-            ( ( (uncurry step (constgravity dt) bodies), keyboard ), Cmd.none )
-
-        KeyPress keyMsg ->
             let
-                ( kybrd, keyboardCmd ) =
-                    Keyboard.update keyMsg keyboard
-
-                direction =
-                    Keyboard.arrows kybrd
+                ( gravity, ambiant ) =
+                    constgravity dt
             in
-                ( ( bodies, keyboard ), Cmd.map KeyPress keyboardCmd )
+            ( { model | bodies = step gravity ambiant model.bodies }, Cmd.none )
+
+        KeyPress key ->
+            let
+                pressedKeys =
+                    Keyboard.update key model.keys
+            in
+            ( { model | keys = pressedKeys }, Cmd.none )
 
 
 {-| Run the animation started from the initial scene defined as `labeledBodies`.
 -}
-main : Program Never
+type alias Flags =
+    {}
+
+
+init : Flags -> ( Model String, Cmd Msg )
+init flags =
+    ( initModel, Cmd.none )
+
+
 main =
-    let
-        ( keyboard, keyboardCmd ) =
-            Keyboard.init
-    in
-        program
-            { init = ( ( labeledBodies, keyboard ), Cmd.map KeyPress keyboardCmd )
-            , update = update
-            , subscriptions = always subs
-            , view = scene >> Element.toHtml
-            }
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = always subs
+        , view = Collage.Render.svgBox ( width, height ) << scene
+        }

@@ -1,4 +1,4 @@
-module BoxesAndBubbles.Math2D exposing (..)
+module BoxesAndBubbles.Math2D exposing (Vec2, abs2, div2, dot, lenSq, minus, mul, mul2, neg, norm, plus)
 
 -- just vector things
 

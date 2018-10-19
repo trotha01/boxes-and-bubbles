@@ -1,19 +1,20 @@
 module Player exposing (main)
 
-import Html.App exposing (program)
+import AnimationFrame
+import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Body as Body exposing (..)
 import BoxesAndBubbles.Engine as Engine
-import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Math2D exposing (mul2)
-import List exposing (map)
 import Collage exposing (..)
-import Element exposing (..)
+import Collage.Text exposing (fromString)
 import Color exposing (..)
-import Text exposing (fromString)
-import AnimationFrame
+import Element exposing (..)
+import Html.App exposing (program)
+import Keyboard.Extra as Keyboard
+import List exposing (map)
 import String
 import Time exposing (Time)
-import Keyboard.Extra as Keyboard
+
 
 
 -- MODEL
@@ -31,13 +32,18 @@ defaultLabel =
 
 ( width, height ) =
     ( 600, 600 )
+
+
 {-| someBodies
- - box: (w,h) pos velocity density restitution
- - bubble: radius pos velocity density restitution
+
+  - box: (w,h) pos velocity density restitution
+  - bubble: radius pos velocity density restitution
+
 -}
 someBodies =
     [ bubble black 20 1 e0 ( -80, 100 ) ( 1.5, 0 ) defaultLabel
-      -- , bubble 1 inf 0 ( 80, 0 ) ( 0, 0 ) defaultLabel
+
+    -- , bubble 1 inf 0 ( 80, 0 ) ( 0, 0 ) defaultLabel
     , bubble black 15 1 e0 ( 0, 200 ) ( 0.4, -3.0 ) defaultLabel
     , bubble black 5 1 e0 ( 200, -280 ) ( -2, 1 ) defaultLabel
     , bubble black 15 5 0.4 ( 100, 100 ) ( -4, -3 ) defaultLabel
@@ -88,8 +94,7 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
                     group
                         [ circle radius
                             -- |> filled blue
-                            |>
-                                outlined (solid black)
+                            |> outlined (solid black)
                         , info
                             |> Collage.move ( 0, radius + 16 )
                         , veloLine
@@ -100,13 +105,13 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
                         ( w, h ) =
                             extents
                     in
-                        group
-                            [ rect (w * 2) (h * 2) |> outlined (solid black)
-                            , info |> Collage.move ( 0, h + 16 )
-                            , veloLine
-                            ]
+                    group
+                        [ rect (w * 2) (h * 2) |> outlined (solid black)
+                        , info |> Collage.move ( 0, h + 16 )
+                        , veloLine
+                        ]
     in
-        Collage.move pos ready
+    Collage.move pos ready
 
 
 
@@ -127,16 +132,16 @@ update msg ( model, keyboard ) =
                     collideUser model.user model.bodies
 
                 newUser =
-                    (uncurry Engine.update (noGravity dt)) collidedUser
+                    uncurry Engine.update (noGravity dt) collidedUser
             in
-                ( ( { model
-                        | user = newUser
-                        , bodies = (uncurry step (noGravity dt) collidedBodies)
-                    }
-                  , keyboard
-                  )
-                , Cmd.none
-                )
+            ( ( { model
+                    | user = newUser
+                    , bodies = uncurry step (noGravity dt) collidedBodies
+                }
+              , keyboard
+              )
+            , Cmd.none
+            )
 
         KeyPress keyMsg ->
             let
@@ -149,14 +154,14 @@ update msg ( model, keyboard ) =
                 updatedUser =
                     Body.move model.user direction
             in
-                ( ( { model
-                        | user = updatedUser
-                        , bodies = model.bodies
-                    }
-                  , keyboard
-                  )
-                , Cmd.map KeyPress keyboardCmd
-                )
+            ( ( { model
+                    | user = updatedUser
+                    , bodies = model.bodies
+                }
+              , keyboard
+              )
+            , Cmd.map KeyPress keyboardCmd
+            )
 
 
 collideUser : Body meta -> List (Body meta) -> ( Body meta, List (Body meta) )
@@ -167,7 +172,7 @@ collideUser user bodies =
                 ( u2, b2 ) =
                     collide u b
             in
-                ( u2, b2 :: bs )
+            ( u2, b2 :: bs )
         )
         ( user, [] )
         bodies
@@ -182,7 +187,7 @@ collide a0 b0 =
         ( a1, b1 ) =
             Engine.resolveCollision collisionResult a0 b0
     in
-        ( a1, b1 )
+    ( a1, b1 )
 
 
 
@@ -207,12 +212,12 @@ main =
         ( keyboard, keyboardCmd ) =
             Keyboard.init
     in
-        program
-            { init = ( ( model0, keyboard ), Cmd.map KeyPress keyboardCmd )
-            , update = update
-            , subscriptions = always subs
-            , view = scene >> Element.toHtml
-            }
+    program
+        { init = ( ( model0, keyboard ), Cmd.map KeyPress keyboardCmd )
+        , update = update
+        , subscriptions = always subs
+        , view = scene >> Element.toHtml
+        }
 
 
 
