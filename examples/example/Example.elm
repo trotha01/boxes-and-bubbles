@@ -21,45 +21,70 @@ import BoxesAndBubbles.Body as Body exposing (..)
 import BoxesAndBubbles.Engine as Engine
 import BoxesAndBubbles.Math2D exposing (Vec2, mul2)
 import Browser exposing (..)
+import Browser.Dom exposing (..)
 import Browser.Events exposing (..)
 import Collage exposing (..)
 import Collage.Layout exposing (..)
 import Collage.Render exposing (..)
 import Collage.Text exposing (fromString)
 import Color exposing (..)
+import Html exposing (..)
+import Html.Attributes exposing (style)
 import Keyboard
 import List exposing (map)
 import String
+import Task
 
 
-inf =
-    1 / 0
+main =
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = always subs
+        , view = view
+        }
+
+
+type alias Flags =
+    {}
+
+
+init : Flags -> ( Model, Cmd Msg )
+init flags =
+    ( initModel, Task.perform ViewportChange getViewport )
 
 
 
--- infinity, hell yeah
+-- MODEL
 
 
-e0 =
-    0.8
-
-
-
--- default restitution coefficient
--- box: (w,h) pos velocity density restitution
--- bubble: radius pos velocity density restitution
-
-
-type alias Model meta =
-    { bodies : List (Body meta)
+type alias Model =
+    { bodies : List (Body String)
     , keys : List Keyboard.Key
+    , viewport : Viewport
     }
 
 
-initModel : Model String
+initModel : Model
 initModel =
-    { bodies = labeledBodies
+    { bodies = []
     , keys = []
+    , viewport = initViewport 0 0
+    }
+
+
+initViewport : Int -> Int -> Viewport
+initViewport width height =
+    { scene =
+        { height = 0
+        , width = 0
+        }
+    , viewport =
+        { height = toFloat height
+        , width = toFloat width
+        , x = 0
+        , y = 0
+        }
     }
 
 
@@ -67,15 +92,7 @@ defaultLabel =
     ""
 
 
-width =
-    600
-
-
-height =
-    600
-
-
-someBodies =
+someBodies model =
     [ bubble black 20 1 e0 ( -80, 0 ) ( 1.5, 0 ) defaultLabel
     , bubble black 1 inf 0 ( 80, 0 ) ( 0, 0 ) defaultLabel
     , bubble black 15 1 e0 ( 0, 200 ) ( 0.4, -3.0 ) defaultLabel
@@ -86,11 +103,7 @@ someBodies =
     , box black ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) defaultLabel
     , box black ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) defaultLabel
     ]
-        ++ bounds ( width - 50, height - 50 ) 100 e0 ( 0, 0 ) defaultLabel
-
-
-
--- we'll just compute the label from the data in the body
+        ++ bounds ( model.viewport.viewport.width - 50, model.viewport.viewport.height - 50 ) 100 e0 ( 0, 0 ) defaultLabel
 
 
 bodyLabel restitution inverseMass =
@@ -105,20 +118,58 @@ type alias LabeledBody =
     Body Labeled
 
 
-
---attachlabel label body =
---  let labelRecord = { label = label }
---  in { body }
--- and attach it to all the bodies
+initBodies : Model -> List (Body String)
+initBodies model =
+    map (\b -> { b | meta = bodyLabel b.restitution b.inverseMass }) (someBodies model)
 
 
-labeledBodies : List (Body String)
-labeledBodies =
-    map (\b -> { b | meta = bodyLabel b.restitution b.inverseMass }) someBodies
+type Msg
+    = Tick Float
+    | KeyPress Keyboard.Msg
+    | ViewportChange Viewport
 
 
 
--- why yes, it draws a body with label. Or creates the Element, rather
+-- UPDATE
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        Tick dt ->
+            let
+                ( gravity, ambiant ) =
+                    constgravity dt
+            in
+            ( { model | bodies = step gravity ambiant model.bodies }, Cmd.none )
+
+        KeyPress key ->
+            let
+                pressedKeys =
+                    Keyboard.update key model.keys
+            in
+            ( { model | keys = pressedKeys }, Cmd.none )
+
+        ViewportChange viewport ->
+            { model | viewport = viewport }
+                |> (\newModel -> { newModel | bodies = initBodies newModel })
+                |> (\finalModel -> ( finalModel, Cmd.none ))
+
+
+
+-- VIEW
+
+
+view : Model -> Html Msg
+view model =
+    div [ style "text-align" "center" ]
+        [ Collage.Render.svgBox ( model.viewport.viewport.width, model.viewport.viewport.height ) <| scene model
+        ]
+
+
+scene : Model -> Collage msg
+scene model =
+    group <| map drawBody model.bodies
 
 
 drawBody : Body String -> Collage msg
@@ -156,10 +207,29 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
     Collage.shift pos ready
 
 
-scene : Model String -> Collage msg
-scene model =
-    -- collage width height <| map drawBody bodies
-    group <| map drawBody model.bodies
+
+-- SUBS
+
+
+subs : Sub Msg
+subs =
+    Sub.batch
+        [ Sub.map KeyPress Keyboard.subscriptions
+        , onResize (\h w -> ViewportChange (initViewport h w))
+        , onAnimationFrameDelta Tick
+        ]
+
+
+
+-- HELPERS
+
+
+inf =
+    1 / 0
+
+
+e0 =
+    0.8
 
 
 
@@ -171,75 +241,15 @@ noGravity t =
 
 
 constgravity t =
+    -- constant downward gravity
     ( ( 0, -0.2 ), ( 0, 0 ) )
 
 
-
--- constant downward gravity
-
-
 sinforce t =
+    -- sinusoidal sideways force
     ( (sin <| radians (t / 1000)) * 50, 0 )
 
 
-
--- sinusoidal sideways force
-
-
 counterforces t =
+    -- small gravity, slowly accellerating upward drift
     ( ( 0, -0.01 ), ( 0, t / 1000 ) )
-
-
-
--- small gravity, slowly accellerating upward drift
-
-
-type Msg
-    = Tick Float
-    | KeyPress Keyboard.Msg
-
-
-subs : Sub Msg
-subs =
-    Sub.batch
-        [ Sub.map KeyPress Keyboard.subscriptions
-        , onAnimationFrameDelta Tick
-        ]
-
-
-update : Msg -> Model meta -> ( Model meta, Cmd Msg )
-update msg model =
-    case msg of
-        Tick dt ->
-            let
-                ( gravity, ambiant ) =
-                    constgravity dt
-            in
-            ( { model | bodies = step gravity ambiant model.bodies }, Cmd.none )
-
-        KeyPress key ->
-            let
-                pressedKeys =
-                    Keyboard.update key model.keys
-            in
-            ( { model | keys = pressedKeys }, Cmd.none )
-
-
-{-| Run the animation started from the initial scene defined as `labeledBodies`.
--}
-type alias Flags =
-    {}
-
-
-init : Flags -> ( Model String, Cmd Msg )
-init flags =
-    ( initModel, Cmd.none )
-
-
-main =
-    Browser.element
-        { init = init
-        , update = update
-        , subscriptions = always subs
-        , view = Collage.Render.svgBox ( width, height ) << scene
-        }
