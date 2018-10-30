@@ -123,14 +123,14 @@ initBodies model =
     map (\b -> { b | meta = bodyLabel b.restitution b.inverseMass }) (someBodies model)
 
 
+
+-- UPDATE
+
+
 type Msg
     = Tick Float
     | KeyPress Keyboard.Msg
     | ViewportChange Viewport
-
-
-
--- UPDATE
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

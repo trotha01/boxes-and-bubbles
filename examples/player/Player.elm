@@ -3,50 +3,100 @@ module Player exposing (main)
 import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Body as Body exposing (..)
 import BoxesAndBubbles.Engine as Engine
-import BoxesAndBubbles.Math2D exposing (mul2)
+import BoxesAndBubbles.Math2D as Vec2 exposing (getX, getY, mul2, vec2)
 import Browser exposing (..)
+import Browser.Dom exposing (..)
 import Browser.Events exposing (..)
 import Collage exposing (..)
 import Collage.Layout exposing (..)
 import Collage.Render exposing (..)
 import Collage.Text exposing (fromString)
 import Color exposing (..)
+import Html exposing (..)
+import Html.Attributes exposing (style)
+import Json.Decode as Decode exposing (Decoder)
 import Keyboard
 import Keyboard.Arrows as Keyboard
 import List exposing (map)
 import String
+import Task
+
+
+
+-- MAIN
+
+
+main =
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = always subs
+        , view = view
+
+        -- scene >> Collage.Render.svgBox ( width, height )
+        }
+
+
+type alias Flags =
+    {}
+
+
+init : Flags -> ( Model, Cmd Msg )
+init flags =
+    ( initModel, Task.perform ViewportChange getViewport )
 
 
 
 -- MODEL
 
 
-type alias Model meta =
-    { bodies : List (Body meta)
-    , user : Body meta
+type alias Model =
+    { bodies : List (Body String)
+    , user : Body String
     , keys : List Keyboard.Key
+    , viewport : Viewport
     }
+
+
+initModel : Model
+initModel =
+    { bodies = []
+    , user = initUser
+    , keys = []
+    , viewport = initViewport 0 0
+    }
+
+
+initBodies : Model -> List (Body String)
+initBodies model =
+    someBodies model
+        |> map (\b -> { b | meta = bodyLabel b.restitution b.inverseMass })
+
+
+initViewport : Int -> Int -> Viewport
+initViewport width height =
+    { scene =
+        { height = 0
+        , width = 0
+        }
+    , viewport =
+        { height = toFloat height
+        , width = toFloat width
+        , x = 0
+        , y = 0
+        }
+    }
+
+
+initUser =
+    bubble black 100 1 e0 ( -80, 0 ) ( 0, 0 ) defaultLabel
 
 
 defaultLabel =
     ""
 
 
-width =
-    600
-
-
-height =
-    600
-
-
-{-| someBodies
-
-  - box: (w,h) pos velocity density restitution
-  - bubble: radius pos velocity density restitution
-
--}
-someBodies =
+someBodies model =
     [ bubble black 20 1 e0 ( -80, 100 ) ( 1.5, 0 ) defaultLabel
 
     -- , bubble 1 inf 0 ( 80, 0 ) ( 0, 0 ) defaultLabel
@@ -58,19 +108,7 @@ someBodies =
     , box black ( 20, 20 ) 1 e0 ( -200, 0 ) ( 3, 0 ) defaultLabel
     , box black ( 15, 15 ) 1 e0 ( 200, -200 ) ( -1, -1 ) defaultLabel
     ]
-        ++ bounds ( width - 50, height - 50 ) 100 e0 ( 0, 0 ) defaultLabel
-
-
-initUser =
-    bubble black 100 1 e0 ( -80, 0 ) ( 0, 0 ) defaultLabel
-
-
-model0 : Model String
-model0 =
-    { bodies = map (\b -> { b | meta = bodyLabel b.restitution b.inverseMass }) someBodies
-    , user = initUser
-    , keys = []
-    }
+        ++ bounds ( model.viewport.viewport.width - 50, model.viewport.viewport.height - 50 ) 100 e0 ( 0, 0 ) defaultLabel
 
 
 bodyLabel restitution inverseMass =
@@ -78,10 +116,165 @@ bodyLabel restitution inverseMass =
 
 
 
+-- UPDATE
+
+
+type Msg
+    = Tick Float
+    | KeyPress Keyboard.Msg
+    | ViewportChange Viewport
+    | Click Point
+
+
+mapUser : (Body String -> Body String) -> Model -> Model
+mapUser f model =
+    { model | user = f model.user }
+
+
+{-| since collage uses points relative to the center
+we have to convert points from Browser, like onclick
+-}
+pointRelativeToCenter : Viewport -> Point -> Point
+pointRelativeToCenter viewport point =
+    { x = point.x - (viewport.viewport.width / 2)
+    , y = 0 - (point.y - (viewport.viewport.height / 2))
+    }
+
+
+moveUser : Viewport -> Point -> Body String -> Body String
+moveUser viewport point user =
+    let
+        relPoint =
+            pointRelativeToCenter viewport point
+
+        _ =
+            Debug.log "center" { x = viewport.viewport.x / 2, y = viewport.viewport.y / 2 }
+
+        _ =
+            Debug.log "click" relPoint
+
+        _ =
+            Debug.log "player" user.pos
+
+        _ =
+            Debug.log "diff" diff
+
+        ( poxX, posY ) =
+            ( getX user.pos, getY user.pos )
+
+        diff =
+            Vec2.minus user.pos (vec2 relPoint.x relPoint.y)
+
+        ( velX, velY ) =
+            ( getX user.velocity, getY user.velocity )
+
+        velocityMagnitude =
+            sqrt (velX ^ 2 + velY ^ 2)
+
+        newVel =
+            -- we create a new vector at the point clicked
+            diff
+                -- then convert it to a unit vector
+                |> Vec2.normalize
+                -- then scale it to have the same magnitude as before
+                |> Vec2.scale velocityMagnitude
+                -- then add it to the original velocity
+                |> Vec2.plus user.velocity
+                -- but keep it within some limits, don't want to go too fast
+                |> Vec2.clamp ( -5, 5 ) ( -5, 5 )
+    in
+    { user | velocity = newVel }
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        Click pos ->
+            model
+                |> mapUser (moveUser model.viewport pos)
+                |> (\newModel -> ( newModel, Cmd.none ))
+
+        Tick dt ->
+            let
+                ( collidedUser, collidedBodies ) =
+                    collideUser model.user model.bodies
+
+                ( gravity, ambiant ) =
+                    noGravity dt
+
+                newUser =
+                    Engine.update gravity ambiant collidedUser
+            in
+            ( { model
+                | user = newUser
+                , bodies = step gravity ambiant collidedBodies
+              }
+            , Cmd.none
+            )
+
+        KeyPress keyMsg ->
+            let
+                pressedKeys =
+                    Keyboard.update keyMsg model.keys
+
+                direction =
+                    Keyboard.arrows pressedKeys
+
+                updatedUser =
+                    Body.move model.user direction
+            in
+            ( { model
+                | user = updatedUser
+                , bodies = model.bodies
+                , keys = pressedKeys
+              }
+            , Cmd.none
+            )
+
+        ViewportChange viewport ->
+            { model | viewport = Debug.log "viewport" viewport }
+                |> (\newModel -> { newModel | bodies = initBodies newModel })
+                |> (\finalModel -> ( finalModel, Cmd.none ))
+
+
+collideUser : Body meta -> List (Body meta) -> ( Body meta, List (Body meta) )
+collideUser user bodies =
+    List.foldl
+        (\b ( u, bs ) ->
+            let
+                ( u2, b2 ) =
+                    collide u b
+            in
+            ( u2, b2 :: bs )
+        )
+        ( user, [] )
+        bodies
+
+
+collide : Body meta -> Body meta -> ( Body meta, Body meta )
+collide a0 b0 =
+    let
+        collisionResult =
+            Engine.collision a0 b0
+
+        ( a1, b1 ) =
+            Engine.resolveCollision collisionResult a0 b0
+    in
+    ( a1, b1 )
+
+
+
 -- VIEW
 
 
-scene : Model String -> Collage msg
+view : Model -> Html Msg
+view model =
+    div [ style "text-align" "center" ]
+        [ Collage.Render.svgBox ( model.viewport.viewport.width - 10, model.viewport.viewport.height - 10 ) <| scene model
+        ]
+
+
+scene : Model -> Collage msg
 scene model =
     group <| map drawBody (model.user :: model.bodies)
 
@@ -122,82 +315,6 @@ drawBody { pos, velocity, inverseMass, restitution, shape, meta } =
 
 
 
--- UPDATE
-
-
-type Msg
-    = Tick Float
-    | KeyPress Keyboard.Msg
-
-
-update : Msg -> Model meta -> ( Model meta, Cmd Msg )
-update msg model =
-    case msg of
-        Tick dt ->
-            let
-                ( collidedUser, collidedBodies ) =
-                    collideUser model.user model.bodies
-
-                ( gravity, ambiant ) =
-                    noGravity dt
-
-                newUser =
-                    Engine.update gravity ambiant collidedUser
-            in
-            ( { model
-                | user = newUser
-                , bodies = step gravity ambiant collidedBodies
-              }
-            , Cmd.none
-            )
-
-        KeyPress keyMsg ->
-            let
-                pressedKeys =
-                    Keyboard.update keyMsg model.keys
-
-                direction =
-                    Keyboard.arrows pressedKeys
-
-                updatedUser =
-                    Body.move model.user direction
-            in
-            ( { model
-                | user = updatedUser
-                , bodies = model.bodies
-                , keys = pressedKeys
-              }
-            , Cmd.none
-            )
-
-
-collideUser : Body meta -> List (Body meta) -> ( Body meta, List (Body meta) )
-collideUser user bodies =
-    List.foldl
-        (\b ( u, bs ) ->
-            let
-                ( u2, b2 ) =
-                    collide u b
-            in
-            ( u2, b2 :: bs )
-        )
-        ( user, [] )
-        bodies
-
-
-collide : Body meta -> Body meta -> ( Body meta, Body meta )
-collide a0 b0 =
-    let
-        collisionResult =
-            Engine.collision a0 b0
-
-        ( a1, b1 ) =
-            Engine.resolveCollision collisionResult a0 b0
-    in
-    ( a1, b1 )
-
-
-
 -- SUBSCRIPTIONS
 
 
@@ -205,30 +322,24 @@ subs : Sub Msg
 subs =
     Sub.batch
         [ Sub.map KeyPress Keyboard.subscriptions
+        , onResize (\h w -> ViewportChange (initViewport h w))
         , onAnimationFrameDelta Tick
+        , onMouseDown decodeClickEvent
         ]
 
 
-
--- MAIN
-
-
-type alias Flags =
-    {}
+type alias Point =
+    { x : Float
+    , y : Float
+    }
 
 
-init : Flags -> ( Model String, Cmd Msg )
-init flags =
-    ( model0, Cmd.none )
-
-
-main =
-    Browser.element
-        { init = init
-        , update = update
-        , subscriptions = always subs
-        , view = scene >> Collage.Render.svgBox ( width, height )
-        }
+decodeClickEvent : Decoder Msg
+decodeClickEvent =
+    Decode.map2 Point
+        (Decode.field "clientX" Decode.float)
+        (Decode.field "clientY" Decode.float)
+        |> Decode.map Click
 
 
 

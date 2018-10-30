@@ -141,7 +141,7 @@ collisionBoxBubble ( posBox, boxExtents ) ( posBubble, bubbleRadius ) =
             boxExtents
 
         c =
-            ( clamp -boxX boxX dx, clamp -boxY boxY dy )
+            ( Basics.clamp -boxX boxX dx, Basics.clamp -boxY boxY dy )
 
         -- closest point on box to center of bubble
         ( cx, cy ) =

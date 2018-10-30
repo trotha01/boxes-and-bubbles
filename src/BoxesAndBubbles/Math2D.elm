@@ -1,10 +1,25 @@
-module BoxesAndBubbles.Math2D exposing (Vec2, abs2, div2, dot, lenSq, minus, mul, mul2, neg, norm, plus)
+module BoxesAndBubbles.Math2D exposing (Vec2, abs2, clamp, div2, dot, getX, getY, lenSq, minus, mul, mul2, neg, norm, normalize, plus, scale, vec2)
 
 -- just vector things
 
 
 type alias Vec2 =
     ( Float, Float )
+
+
+vec2 : Float -> Float -> Vec2
+vec2 x y =
+    ( x, y )
+
+
+getX : Vec2 -> Float
+getX ( x0, y0 ) =
+    x0
+
+
+getY : Vec2 -> Float
+getY ( x0, y0 ) =
+    y0
 
 
 plus : Vec2 -> Vec2 -> Vec2
@@ -45,6 +60,11 @@ mul2 ( x, y ) a =
     ( x * a, y * a )
 
 
+scale : Float -> Vec2 -> Vec2
+scale a v =
+    mul2 v a
+
+
 
 -- stuff
 
@@ -59,6 +79,11 @@ neg ( x, y ) =
     ( -x, -y )
 
 
+clamp : ( Float, Float ) -> ( Float, Float ) -> Vec2 -> Vec2
+clamp ( xMin, xMax ) ( yMin, yMax ) ( x, y ) =
+    ( Basics.clamp xMin xMax x, Basics.clamp yMin yMax y )
+
+
 
 -- squared norm/length of vector
 
@@ -71,3 +96,8 @@ lenSq ( x, y ) =
 norm : Vec2 -> Vec2
 norm v =
     div2 v <| sqrt (lenSq v)
+
+
+normalize : Vec2 -> Vec2
+normalize =
+    norm
