@@ -1,15 +1,16 @@
-module User exposing (..)
+module User exposing (Children, Food, Meta, Model, Msg(..), childFromModel, collideWithBodies, collideWithBody, init, swallow, update, userMeta, view)
 
+import Bodies
+import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Body as Body exposing (..)
 import BoxesAndBubbles.Engine as Engine
-import BoxesAndBubbles exposing (..)
 import BoxesAndBubbles.Math2D exposing (mul2, plus)
-import Color exposing (..)
 import Collage exposing (..)
-import Time exposing (Time)
-import Keyboard.Extra as Keyboard
-import Bodies
-import PhysicsConsts exposing (noGravity, e0)
+import Color exposing (..)
+import Keyboard
+import Keyboard.Arrows as Keyboard
+import PhysicsConsts exposing (e0, noGravity)
+
 
 
 -- MODEL
@@ -28,14 +29,14 @@ type alias Meta =
     }
 
 
-meta : Meta
-meta =
+userMeta : Meta
+userMeta =
     { dir = ( 0, 0 ) }
 
 
 init : Model
 init =
-    bubble purple 100 1 e0 ( -80, 0 ) ( 1, 0 ) meta
+    bubble purple 100 1 e0 ( -80, 0 ) ( 1, 0 ) userMeta
 
 
 
@@ -43,32 +44,35 @@ init =
 
 
 type Msg
-    = Tick Time
+    = Tick Float
     | KeyPress Keyboard.Msg
 
 
-update : Msg -> ( Model, Keyboard.Model ) -> ( ( Model, Keyboard.Model ), Cmd Keyboard.Msg )
+update : Msg -> ( Model, List Keyboard.Key ) -> ( ( Model, List Keyboard.Key ), Cmd msg )
 update msg ( model, keyboard ) =
     case msg of
         Tick dt ->
             let
-                user2 =
-                    (uncurry Engine.update (noGravity dt)) model
+                ( gravity, ambiant ) =
+                    noGravity dt
+
+                newUser =
+                    Engine.update gravity ambiant model
             in
-                ( ( user2, keyboard ), Cmd.none )
+            ( ( newUser, keyboard ), Cmd.none )
 
         KeyPress keyMsg ->
             let
-                ( keyboard2, keyboardCmd ) =
+                pressedKeys =
                     Keyboard.update keyMsg keyboard
 
                 direction =
-                    Keyboard.arrows keyboard2
+                    Keyboard.arrows pressedKeys
 
                 user2 =
                     Body.move model direction
             in
-                ( ( user2, keyboard2 ), keyboardCmd )
+            ( ( user2, pressedKeys ), Cmd.none )
 
 
 childFromModel : Model -> Body Bodies.Meta
@@ -98,10 +102,10 @@ swallow food =
         meta =
             food.meta
 
-        meta' =
+        meta2 =
             { meta | eaten = True }
     in
-        { food | meta = meta' }
+    { food | meta = meta2 }
 
 
 {-| collideWithBody: collide user with another body
@@ -113,7 +117,7 @@ collideWithBody user body =
             -- TODO: only collide if we have to
             Engine.collision user body
 
-        ( user1, body1 ) =
+        ( user2, body2 ) =
             if collisionResult.penetration > 0 && body.meta.isFood then
                 case body.shape of
                     -- if the penetration is greater than 2r, then the food is moving around inside
@@ -125,23 +129,26 @@ collideWithBody user body =
                                     { collisionResult | normal = mul2 collisionResult.normal -1 }
 
                                 ( user1, body1 ) =
-                                    (Engine.resolveCollision cr user body)
+                                    Engine.resolveCollision cr user body
                             in
-                                ( user1, swallow body1 )
+                            ( user1, swallow body1 )
+
                         else if
                             collisionResult.penetration > (r * 2)
                             -- || collisionResult.penetration < r
                         then
                             ( user, swallow body )
+
                         else
-                            (Engine.resolveCollision collisionResult user body)
+                            Engine.resolveCollision collisionResult user body
 
                     Box _ ->
                         Engine.resolveCollision collisionResult user body
+
             else
                 Engine.resolveCollision collisionResult user body
     in
-        ( user1, body1 )
+    ( user2, body2 )
 
 
 {-| collideWithBodies: collide user with list of body
@@ -154,7 +161,7 @@ collideWithBodies model bodies0 =
                 ( u2, b2 ) =
                     collideWithBody u b
             in
-                ( u2, b2 :: bs )
+            ( u2, b2 :: bs )
         )
         ( model, [] )
         bodies0
@@ -164,19 +171,18 @@ collideWithBodies model bodies0 =
 -- VIEW
 
 
-view : Model -> Form
+view : Model -> Collage msg
 view user =
     let
         veloLine =
-            segment ( 0, 0 ) (mul2 user.velocity 5) |> traced (solid red)
+            segment ( 0, 0 ) (mul2 user.velocity 5) |> traced (solid 1 (uniform red))
 
         ready =
             case user.shape of
                 Bubble radius ->
                     group
                         [ circle radius
-                            |> filled user.color
-                          -- , veloLine
+                            |> filled (uniform user.color)
                         ]
 
                 Box extents ->
@@ -184,8 +190,8 @@ view user =
                         ( w, h ) =
                             extents
                     in
-                        group
-                            [ rect (w * 2) (h * 2) |> filled user.color
-                            ]
+                    group
+                        [ rectangle (w * 2) (h * 2) |> outlined (solid 1 (uniform black))
+                        ]
     in
-        Collage.move user.pos ready
+    Collage.shift user.pos ready

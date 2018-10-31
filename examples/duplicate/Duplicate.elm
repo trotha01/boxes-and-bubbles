@@ -1,28 +1,37 @@
 module Duplicate exposing (main)
 
-{-| # Overview
+{-|
+
+
+# Overview
+
 Duplicate the user after a time period
+
 -}
 
-import Html.App exposing (program)
-import BoxesAndBubbles.Body as Body exposing (..)
-import BoxesAndBubbles exposing (..)
-import BoxesAndBubbles.Math2D exposing (mul2, plus)
-import List exposing (map)
-import Collage exposing (..)
-import Element exposing (..)
-import Color exposing (..)
-import AnimationFrame
-import Time exposing (Time)
-import Task
-import Keyboard.Extra as Keyboard
-import Window
-import Text
-import Random
-import User exposing (init)
 import Bodies
-import Wall
 import Bound
+import BoxesAndBubbles exposing (..)
+import BoxesAndBubbles.Body as Body exposing (..)
+import BoxesAndBubbles.Engine as Engine
+import BoxesAndBubbles.Math2D exposing (mul2)
+import Browser exposing (..)
+import Browser.Dom exposing (..)
+import Browser.Events exposing (..)
+import Collage exposing (..)
+import Collage.Layout exposing (..)
+import Collage.Render exposing (..)
+import Collage.Text exposing (fromString)
+import Color exposing (..)
+import Keyboard
+import Keyboard.Arrows as Keyboard
+import List exposing (map)
+import Random
+import String
+import Task
+import User exposing (init)
+import Wall
+
 
 
 -- MODEL
@@ -36,14 +45,14 @@ type alias Model =
     , bounds : Bound.Model
     , seed : Random.Seed
     , points : Int
-    , keyboard : Keyboard.Model
+    , keyboard : List Keyboard.Key
     , windowWidth : Int
     , windowHeight : Int
     }
 
 
-initialModel : Keyboard.Model -> Model
-initialModel keyboard =
+initialModel : Model
+initialModel =
     { bodies = Bodies.init
     , user = User.init
     , children = []
@@ -51,7 +60,7 @@ initialModel keyboard =
     , bounds = Bound.init width height
     , seed = Random.initialSeed 3
     , points = 0
-    , keyboard = keyboard
+    , keyboard = []
     , windowWidth = 700
     , windowHeight = 700
     }
@@ -61,31 +70,39 @@ initialModel keyboard =
 -- VIEW
 
 
-( height, width ) =
-    ( 700, 700 )
-scene : Model -> Element
+height =
+    700
+
+
+width =
+    700
+
+
+scene : Model -> Collage msg
 scene model =
-    collage model.windowWidth model.windowHeight
-        <| (User.view model.user)
-        :: (Bodies.view model.bodies)
-        ++ (Bodies.view model.children)
-        ++ (Wall.view model.walls)
-        ++ points model
+    -- collage model.windowWidth model.windowHeight <|
+    group <|
+        Bodies.view model.bodies
+            ++ Bodies.view model.children
+            ++ Wall.view model.walls
+            ++ points model
+            ++ [ User.view model.user ]
 
 
-points : Model -> List Form
+points : Model -> List (Collage msg)
 points model =
     let
         halfWidth =
-            (toFloat model.windowWidth) / 2
+            toFloat model.windowWidth / 2
 
         halfHeight =
-            (toFloat model.windowHeight) / 2
+            toFloat model.windowHeight / 2
 
         pointText =
-            (text (Text.fromString (toString model.points)))
+            Collage.Text.fromString (String.fromInt model.points)
+                |> rendered
     in
-        [ pointText |> Collage.move ( halfWidth - 50, halfHeight - 50 ) ]
+    [ pointText |> Collage.shift ( halfWidth - 50, halfHeight - 50 ) ]
 
 
 
@@ -93,12 +110,12 @@ points model =
 
 
 type Msg
-    = Tick Time
+    = Tick Float
     | Points Int
     | KeyPress Keyboard.Msg
     | BoundMsg (Bound.Msg Bodies.Meta)
     | Regenerate (Body Bodies.Meta)
-    | WindowResize ( Int, Int )
+    | WindowResize Int Int
     | NoOp
 
 
@@ -108,7 +125,7 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        WindowResize ( w, h ) ->
+        WindowResize w h ->
             let
                 walls =
                     Wall.update (Wall.Resize ( w, h )) model.walls
@@ -116,14 +133,14 @@ update msg model =
                 bounds =
                     Bound.update (Bound.Resize ( w, h )) model.bounds
             in
-                ( { model
-                    | windowWidth = w
-                    , windowHeight = h
-                    , walls = walls
-                    , bounds = bounds
-                  }
-                , Cmd.none
-                )
+            ( { model
+                | windowWidth = w
+                , windowHeight = h
+                , walls = walls
+                , bounds = bounds
+              }
+            , Cmd.none
+            )
 
         Points p ->
             let
@@ -131,15 +148,16 @@ update msg model =
                     model.points + p
 
                 model2 =
-                    if newPoints /= 0 && newPoints % 100 == 0 then
+                    if newPoints /= 0 && modBy 100 newPoints == 0 then
                         { model
                             | children = User.childFromModel model.user :: model.children
                             , points = newPoints
                         }
+
                     else
                         { model | points = newPoints }
             in
-                ( model2, Cmd.none )
+            ( model2, Cmd.none )
 
         Tick dt ->
             let
@@ -160,7 +178,7 @@ update msg model =
 
                 -- update the body collisions
                 ( bodies3, pointMsgs ) =
-                    Bodies.update (Bodies.Tick dt) (bodies2)
+                    Bodies.update (Bodies.Tick dt) bodies2
 
                 -- update the children collisions
                 ( children3, _ ) =
@@ -171,7 +189,7 @@ update msg model =
                     Bound.collideWithBodies model.bounds children3
 
                 -- collide bodies with the bounds
-                ( bodies4, msgs' ) =
+                ( bodies4, msgs2 ) =
                     Bound.collideWithBodies model.bounds bodies3
 
                 model2 =
@@ -180,18 +198,18 @@ update msg model =
                 -- hack, since I don't know how to generate a Cmd
                 -- we do the bound msgs here
                 ( model3, cmd2 ) =
-                    List.foldl (\msg ( m, cmd ) -> (update (BoundMsg msg) m))
+                    List.foldl (\msg2 ( m, cmd ) -> update (BoundMsg msg2) m)
                         ( model2, Cmd.none )
-                        msgs'
+                        msgs2
 
                 -- hack2, since I don't know how to generate a Cmd
                 -- we do the point msgs here
                 ( model4, cmd3 ) =
                     List.foldl
-                        (\msg ( m, cmd ) ->
-                            case msg of
+                        (\pointMsg ( m, cmd ) ->
+                            case pointMsg of
                                 Bodies.Points p ->
-                                    (update (Points p) m)
+                                    update (Points p) m
 
                                 _ ->
                                     ( m, cmd )
@@ -199,14 +217,14 @@ update msg model =
                         ( model3, Cmd.none )
                         pointMsgs
             in
-                ( model4, cmd3 )
+            ( model4, cmd3 )
 
         KeyPress keyMsg ->
             let
                 ( ( updatedUser, keyboard ), keyboardCmd ) =
                     User.update (User.KeyPress keyMsg) ( model.user, model.keyboard )
             in
-                ( { model | user = updatedUser, keyboard = keyboard }, Cmd.map KeyPress keyboardCmd )
+            ( { model | user = updatedUser, keyboard = keyboard }, Cmd.map KeyPress keyboardCmd )
 
         Regenerate body ->
             let
@@ -216,10 +234,10 @@ update msg model =
                 model2 =
                     { model | bodies = newBody :: model.bodies, seed = newSeed }
             in
-                ( model2, Cmd.none )
+            ( model2, Cmd.none )
 
-        BoundMsg msg ->
-            case msg of
+        BoundMsg boundMsg ->
+            case boundMsg of
                 Bound.Regenerate body ->
                     update (Regenerate body) model
 
@@ -235,8 +253,8 @@ subs : Sub Msg
 subs =
     Sub.batch
         [ Sub.map KeyPress Keyboard.subscriptions
-        , AnimationFrame.diffs Tick
-        , Window.resizes windowResize
+        , onAnimationFrameDelta Tick
+        , Browser.Events.onResize WindowResize
         ]
 
 
@@ -244,24 +262,22 @@ subs =
 -- MAIN
 
 
-main : Program Never
+type alias Flags =
+    {}
+
+
+init : Flags -> ( Model, Cmd Msg )
+init flags =
+    ( initialModel, Cmd.none )
+
+
 main =
-    let
-        ( initialKeyboard, keyboardCmd ) =
-            Keyboard.init
-    in
-        program
-            { init =
-                ( (initialModel initialKeyboard)
-                , Cmd.batch
-                    [ Cmd.map KeyPress keyboardCmd
-                    , initialWindowSize
-                    ]
-                )
-            , update = update
-            , subscriptions = always subs
-            , view = scene >> Element.toHtml
-            }
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = always subs
+        , view = scene >> Collage.Render.svgBox ( width, height )
+        }
 
 
 
@@ -270,9 +286,8 @@ main =
 
 initialWindowSize : Cmd Msg
 initialWindowSize =
-    Task.perform (\_ -> NoOp) windowResize Window.size
-
-
-windowResize : { width : Int, height : Int } -> Msg
-windowResize size =
-    WindowResize ( size.width, size.height )
+    Task.perform
+        (\vp ->
+            WindowResize (round vp.viewport.width) (round vp.viewport.height)
+        )
+        Browser.Dom.getViewport
